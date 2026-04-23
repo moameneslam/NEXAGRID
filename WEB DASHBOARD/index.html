@@ -347,7 +347,7 @@
             if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
             else { load2State = !load2State; newState = load2State; }
 
-            // 1. Update UI Immediately (Optimistic UI update)
+            // Optimistic UI update (makes the button feel instantly responsive)
             if (newState) {
                 btn.classList.remove('off');
                 btnText.innerText = "Turn OFF";
@@ -360,28 +360,27 @@
                 statusBadge.innerText = "○ OFFLINE";
             }
 
-            // 2. Send Command to ThingsBoard
+            // Send Command to your new Vercel API
             try {
-                const response = await fetch(rpcApiUrl, {
+                const response = await fetch('/api/relay', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Authorization': `Bearer ${JWT_TOKEN}` // Required for Two-Way RPC
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        method: `setRelay${loadNumber}`,
-                        params: newState
+                        loadNumber: loadNumber,
+                        state: newState
                     })
                 });
 
                 if (!response.ok) {
-                    console.warn(`Note: RPC Command intercepted. To make this live, you must replace JWT_TOKEN and DEVICE_ID in the script.`);
-                    // If it fails, revert the UI state here in a production app
+                    console.error("Vercel API returned an error.");
+                    // Optional: Revert the button visuals here if the command fails
                 } else {
-                    console.log(`Success: Sent state ${newState} to Load ${loadNumber}`);
+                    console.log(`Success: Command sent via Vercel to Load ${loadNumber}`);
                 }
             } catch (error) {
-                console.error("RPC failed:", error);
+                console.error("Network failed to reach Vercel API:", error);
             }
         }
 
