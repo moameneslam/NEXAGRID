@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa Grid Dashboard</title>
+    <style>
+        /* CSS: The Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 40px;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            border-top: 4px solid #3498db;
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Nexa Grid Live Dashboard</h1>
+    
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="metric-label">Voltage</div>
+            <div class="metric-value" id="voltage">-- V</div>
+        </div>
+        <div class="card">
+            <div class="metric-label">Current</div>
+            <div class="metric-value" id="current">-- A</div>
+        </div>
+        <div class="card">
+            <div class="metric-label">Real Power</div>
+            <div class="metric-value" id="power">-- W</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // Change this URL to match your ThingsBoard server instance
+        const TB_URL = 'https://YOUR_THINGSBOARD_SERVER_URL'; 
+        
+        // Your integrated Nexa Grid device token
+        const DEVICE_TOKEN = 'eJ0JRURi0jCUGgrrGcxL';
+        
+        // The ThingsBoard API endpoint for fetching the latest telemetry
+        const apiUrl = `${TB_URL}/api/v1/${DEVICE_TOKEN}/telemetry`;
+
+        async function fetchRealData() {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Check for the keys from your ESP32 payload and update the HTML
+                if (data.voltage) {
+                    document.getElementById('voltage').innerText = parseFloat(data.voltage[0].value).toFixed(1) + ' V';
+                }
+                if (data.current) {
+                    document.getElementById('current').innerText = parseFloat(data.current[0].value).toFixed(2) + ' A';
+                }
+                if (data.power) {
+                    document.getElementById('power').innerText = parseFloat(data.power[0].value).toFixed(0) + ' W';
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch data from ThingsBoard. Verify your TB_URL and ensure CORS is enabled if needed.", error);
+            }
+        }
+
+        // Fetch immediately on load, then poll every 2 seconds
+        fetchRealData();
+        setInterval(fetchRealData, 2000);
+    </script>
+
+</body>
+</html>
