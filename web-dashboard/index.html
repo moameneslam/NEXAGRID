@@ -277,10 +277,16 @@
         }
 
         // --- 3. HARDWARE LOGIC: FETCH TELEMETRY ---
-        async function fetchRealData() {
+       async function fetchRealData() {
             try {
-                const response = await fetch(telemetryApiUrl, { method: 'GET', headers: {'Accept': 'application/json'} });
-                if (!response.ok) return; // Silent fail if connection drops briefly
+                // Fetching from your secure Vercel backend instead of ThingsBoard directly
+                const response = await fetch('/api/telemetry');
+                
+                if (!response.ok) {
+                    console.warn("Telemetry fetch failed. Check Vercel Logs for 500 errors.");
+                    return; 
+                }
+                
                 const data = await response.json();
 
                 let v = 0, i = 0, p = 0;
@@ -289,7 +295,7 @@
                 if (data.voltage) {
                     v = parseFloat(data.voltage[0].value);
                     document.getElementById('voltage_full').innerText = v.toFixed(1);
-                    document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V'; // Update loads tab
+                    document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
                     document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
                 }
                 if (data.current) {
@@ -301,7 +307,6 @@
                     document.getElementById('totalPower').innerText = power_kw;
                     document.getElementById('load-total-split').innerText = power_kw + ' kW';
                     
-                    // Simple split simulation for the Loads tab (Assuming Load 1 takes 80% if both are on)
                     if(load1State && !load2State) {
                         document.getElementById('load1-split').innerText = power_kw + ' kW';
                         document.getElementById('r1-power').innerText = power_kw + ' kW';
@@ -312,7 +317,7 @@
                 // Dynamic Power Factor Math
                 if (v > 0 && i > 0 && p >= 0) {
                     const apparentPower = v * i;
-                    let pf = p / apparentPower;
+                    let pf = apparentPower > 0 ? (p / apparentPower) : 0;
                     if (pf > 1) pf = 1; if (pf < 0) pf = 0;
 
                     document.querySelector('.pf-value').innerText = pf.toFixed(2);
@@ -329,7 +334,7 @@
                 }
 
             } catch (error) {
-                console.error("Telemetry fetch failed:", error);
+                console.error("Failed to reach Vercel Telemetry API:", error);
             }
         }
 
