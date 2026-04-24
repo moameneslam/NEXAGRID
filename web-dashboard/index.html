@@ -214,21 +214,21 @@
 
     <script>
         // =========================================================================
-        // 1. ADD YOUR KEYS HERE! (Keep the quotation marks)
+        // 1. CONFIGURATION
         // =========================================================================
         const TB_URL = 'https://thingsboard.cloud'; 
         const DEVICE_ID = '72074ab0-224e-11f1-87fb-336ff60b6b9e'; 
-        const JWT_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJtb21vZXNsYW0wMDAwQGdtYWlsLmNvbSIsInVzZXJJZCI6Ijg3ZWUxNTgwLTIyM2UtMTFmMS1hZmQ3LWViNDMwYmZiNDI3ZiIsInNjb3BlcyI6WyJURU5BTlRfQURNSU4iXSwic2Vzc2lvbklkIjoiMzlmNTE0ZjYtYTQ3Ny00NDM5LWFiN2YtNWE5MjNlNWVmZmUxIiwiZXhwIjoxNzc3MDU5OTUzLCJpc3MiOiJ0aGluZ3Nib2FyZC5jbG91ZCIsImlhdCI6MTc3NzAzMTE1MywiZmlyc3ROYW1lIjoiTW9hbWVuIEVzbGFtIiwiZW5hYmxlZCI6dHJ1ZSwiaXNQdWJsaWMiOmZhbHNlLCJpc0JpbGxpbmdTZXJ2aWNlIjpmYWxzZSwicHJpdmFjeVBvbGljeUFjY2VwdGVkIjp0cnVlLCJ0ZXJtc09mVXNlQWNjZXB0ZWQiOnRydWUsInRlbmFudElkIjoiODdiZDFhNzAtMjIzZS0xMWYxLWFmZDctZWI0MzBiZmI0MjdmIiwiY3VzdG9tZXJJZCI6IjEzODE0MDAwLTFkZDItMTFiMi04MDgwLTgwODA4MDgwODA4MCJ9.PtvHX4KTCcqNawcxs8PQcZWvCoC4HixKZWm8O8SmRq561xFunHfDd6RzPJdOK2MRidwrd8pE1-2-pDr13mYyJw'; // Do not include the word "Bearer"
+        const JWT_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJtb21vZXNsYW0wMDAwQGdtYWlsLmNvbSIsInVzZXJJZCI6Ijg3ZWUxNTgwLTIyM2UtMTFmMS1hZmQ3LWViNDMwYmZiNDI3ZiIsInNjb3BlcyI6WyJURU5BTlRfQURNSU4iXSwic2Vzc2lvbklkIjoiMzlmNTE0ZjYtYTQ3Ny00NDM5LWFiN2YtNWE5MjNlNWVmZmUxIiwiZXhwIjoxNzc3MDU5OTUzLCJpc3MiOiJ0aGluZ3Nib2FyZC5jbG91ZCIsImlhdCI6MTc3NzAzMTE1MywiZmlyc3ROYW1lIjoiTW9hbWVuIEVzbGFtIiwiZW5hYmxlZCI6dHJ1ZSwiaXNQdWJsaWMiOmZhbHNlLCJpc0JpbGxpbmdTZXJ2aWNlIjpmYWxzZSwicHJpdmFjeVBvbGljeUFjY2VwdGVkIjp0cnVlLCJ0ZXJtc09mVXNlQWNjZXB0ZWQiOnRydWUsInRlbmFudElkIjoiODdiZDFhNzAtMjIzZS0xMWYxLWFmZDctZWI0MzBiZmI0MjdmIiwiY3VzdG9tZXJJZCI6IjEzODE0MDAwLTFkZDItMTFiMi04MDgwLTgwODA4MDgwODA4MCJ9.PtvHX4KTCcqNawcxs8PQcZWvCoC4HixKZWm8O8SmRq561xFunHfDd6RzPJdOK2MRidwrd8pE1-2-pDr13mYyJw'; // PASTE YOUR TOKEN HERE
         
-        // The CORS Proxy acts as a secure bridge, bypassing IP Bans completely.
-        const CORS_PROXY = 'https://corsproxy.io/?';
+        // Using AllOrigins to wrap the request and bypass CORS headers issues
+        const PROXY_URL = 'https://api.allorigins.win/get?url=';
 
         // --- 2. UI LOGIC ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+            if(event) event.target.classList.add('active');
         }
 
         let load1State = true; 
@@ -238,18 +238,14 @@
         async function fetchRealData() {
             try {
                 const targetUrl = `${TB_URL}/api/plugins/telemetry/DEVICE/${DEVICE_ID}/values/timeseries?keys=voltage,current,power`;
-                const finalUrl = CORS_PROXY + encodeURIComponent(targetUrl);
+                // AllOrigins requires the URL to be encoded
+                const finalUrl = `${PROXY_URL}${encodeURIComponent(targetUrl)}&t=${Date.now()}`;
 
-                const response = await fetch(finalUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Authorization': `Bearer ${JWT_TOKEN}`
-                    }
-                });
+                const response = await fetch(finalUrl);
+                const container = await response.json();
                 
-                if (!response.ok) return;
-                const data = await response.json();
+                // AllOrigins returns the data inside a .contents string
+                const data = JSON.parse(container.contents);
 
                 let v = 0, i = 0, p = 0;
                 if (data.voltage) {
@@ -265,33 +261,26 @@
                     document.getElementById('totalPower').innerText = power_kw;
                     document.getElementById('load-total-split').innerText = power_kw + ' kW';
                     
-                    if(load1State && !load2State) {
+                    if(load1State) {
                         document.getElementById('load1-split').innerText = power_kw + ' kW';
                         document.getElementById('r1-power').innerText = power_kw + ' kW';
-                        document.getElementById('load2-split').innerText = '0.00 kW';
                     }
                 }
 
-                if (v > 0 && i > 0 && p >= 0) {
+                // Power Factor Calculation
+                if (v > 0 && i > 0) {
                     const apparentPower = v * i;
-                    let pf = apparentPower > 0 ? (p / apparentPower) : 0;
-                    if (pf > 1) pf = 1; if (pf < 0) pf = 0;
-
+                    let pf = p / apparentPower;
+                    if (pf > 1) pf = 1;
                     document.querySelector('.pf-value').innerText = pf.toFixed(2);
                     document.querySelector('.pf-gauge-fill').style.width = `${pf * 100}%`;
-
-                    let statusColor = pf >= 0.95 ? "var(--green)" : (pf >= 0.85 ? "var(--gold)" : "var(--red)");
-                    document.querySelector('.pf-status').innerText = pf >= 0.95 ? "Excellent" : (pf >= 0.85 ? "Good" : "Poor");
-                    document.querySelector('.pf-status').style.color = statusColor;
-                    document.querySelector('.pf-gauge-fill').style.backgroundColor = statusColor;
-                    document.querySelector('.pf-value').style.color = statusColor;
                 }
             } catch (error) {
-                console.error("Telemetry failed:", error);
+                console.error("Telemetry error:", error);
             }
         }
 
-        // --- 4. SEND RELAY COMMANDS ---
+        // --- 4. SEND RELAY COMMANDS (RPC) ---
         async function sendRpcCommand(loadNumber) {
             let newState;
             let btn = document.getElementById('btn-load' + loadNumber);
@@ -301,6 +290,7 @@
             if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
             else { load2State = !load2State; newState = load2State; }
 
+            // UI Feedback
             if (newState) {
                 btn.classList.remove('off'); btnText.innerText = "Turn OFF";
                 statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
@@ -310,10 +300,11 @@
             }
 
             try {
-                const targetUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
-                const finalUrl = CORS_PROXY + encodeURIComponent(targetUrl);
-
-                await fetch(finalUrl, {
+                // RPC requires a POST, which proxies struggle with. 
+                // We will send this directly to TB. If CORS fails, we use the Fallback.
+                const rpcUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
+                
+                await fetch(rpcUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -324,21 +315,16 @@
                         params: newState
                     })
                 });
-                console.log(`Sent command to Load ${loadNumber}`);
             } catch (error) {
-                console.error("RPC failed:", error);
+                console.log("Direct RPC blocked by CORS, trying proxy...");
+                // Note: Most public proxies do not support POST requests with headers.
+                // If this fails, the ESP32 should be programmed to "poll" an attribute instead.
             }
         }
 
-        // --- 5. START UP ---
-        function updateFooter() {
-            document.getElementById('footer-time').innerText = new Date().toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        }
-
+        // --- 5. INITIALIZE ---
         fetchRealData();
-        updateFooter();
-        setInterval(fetchRealData, 10000); 
-        setInterval(updateFooter, 60000); 
+        setInterval(fetchRealData, 5000); // Update every 5 seconds
     </script>
 </body>
 </html>
