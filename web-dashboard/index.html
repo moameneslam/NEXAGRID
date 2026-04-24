@@ -35,12 +35,7 @@
         .accent-bar { height: 4px; border-radius: 4px 4px 0 0; position: absolute; top: 0; left: 0; right: 0; }
 
         /* --- Header & Navigation --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0 20px;
-        }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 20px; }
         .header-left { display: flex; align-items: center; gap: 30px; }
         .logo { font-size: 1.5em; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px;}
         .logo-icon { width: 24px; height: 24px; background-color: var(--teal); border-radius: 4px; }
@@ -48,22 +43,8 @@
         .connection-status { font-size: 0.9em; display: flex; align-items: center; color: var(--green); }
         .status-indicator { height: 8px; width: 8px; border-radius: 50%; background-color: var(--green); margin-right: 8px; box-shadow: 0 0 8px var(--green); }
 
-        nav {
-            display: flex;
-            gap: 5px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 25px;
-        }
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--text-sub);
-            font-size: 1em;
-            cursor: pointer;
-            padding: 10px 20px;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
+        nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 25px; }
+        .tab-btn { background: none; border: none; color: var(--text-sub); font-size: 1em; cursor: pointer; padding: 10px 20px; border-bottom: 2px solid transparent; transition: all 0.2s; }
         .tab-btn:hover { color: var(--text-main); }
         .tab-btn.active { color: var(--teal); border-bottom: 2px solid var(--teal); font-weight: 600; }
 
@@ -73,13 +54,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- Shared Card Styles --- */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            position: relative;
-        }
+        .card { background-color: var(--card-bg); border-radius: 8px; padding: 20px; border: 1px solid var(--border-color); position: relative; }
 
         /* --- TAB 1: OVERVIEW STYLES --- */
         .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
@@ -119,7 +94,6 @@
         .btn-indicator { height: 10px; width: 10px; border-radius: 50%; background-color: var(--green); }
         .toggle-btn.off .btn-indicator { background-color: var(--text-sub); }
 
-        /* --- Footer --- */
         footer { margin-top: auto; display: flex; justify-content: space-between; padding: 20px 0 10px; border-top: 1px solid var(--border-color); color: var(--text-sub); font-size: 0.8em; }
     </style>
 </head>
@@ -146,33 +120,28 @@
                 <div class="accent-bar" style="background-color: var(--teal);"></div>
                 <div class="metric-label">Total Power</div>
                 <div class="metric-value-container"><div class="metric-value" id="totalPower">0.00</div><div class="metric-unit">kW</div></div>
-                <div class="sub-text">Live System Draw</div>
             </div>
             <div class="card">
                 <div class="accent-bar" style="background-color: var(--green);"></div>
                 <div class="metric-label">Voltage</div>
                 <div class="metric-value-container"><div class="metric-value" id="voltage_full">0.0</div><div class="metric-unit">V</div></div>
-                <div class="sub-text">Grid nominal</div>
             </div>
             <div class="card">
                 <div class="accent-bar" style="background-color: var(--orange);"></div>
                 <div class="metric-label">Frequency</div>
                 <div class="metric-value-container"><div class="metric-value" id="frequency">50.01</div><div class="metric-unit">Hz</div></div>
-                <div class="sub-text">Stable</div>
             </div>
             <div class="card">
                 <div class="accent-bar" style="background-color: var(--gold);"></div>
                 <div class="metric-label">Energy Today</div>
                 <div class="metric-value-container"><div class="metric-value" id="energyToday">18.72</div><div class="metric-unit">kWh</div></div>
-                <div class="sub-text">Calculated Accumulation</div>
             </div>
         </div>
 
         <div class="main-container">
             <div class="card">
                 <h3>Power Over Time</h3>
-                <div class="sub-text">Load 1 + Load 2 combined - 24h</div>
-                <div class="graph-placeholder">[ Chart.js Library Placeholder ]</div>
+                <div class="graph-placeholder">[ Chart Placeholder ]</div>
             </div>
             <div class="sidebar">
                 <div class="card">
@@ -235,40 +204,26 @@
         </div>
     </div>
 
-    <div id="tab-analytics" class="tab-content">
-        <div class="card">
-            <h2>System Analytics</h2>
-            <div class="sub-text">Historical data and consumption reports will be generated here.</div>
-            <div class="graph-placeholder" style="height: 500px; margin-top: 20px;">[ Analytics Dashboards Placeholder ]</div>
-        </div>
-    </div>
-
-    <div id="tab-settings" class="tab-content">
-        <div class="card">
-            <h2>Device Configuration</h2>
-            <div class="sub-text">Manage NexaGrid parameters and notification thresholds.</div>
-            <p style="margin-top: 20px; color: var(--text-sub);">Settings module requires backend database integration for persistence.</p>
-        </div>
-    </div>
+    <div id="tab-analytics" class="tab-content"><div class="card"><h2>System Analytics</h2></div></div>
+    <div id="tab-settings" class="tab-content"><div class="card"><h2>Device Configuration</h2></div></div>
 
     <footer>
         <div id="footer-time"></div>
-        <div>smart-meter-esp32 • Thingsboard Cloud • MQTT</div>
+        <div>Nexa Grid • Serverless Direct Bridge</div>
     </footer>
 
     <script>
-        // --- 1. CONFIGURATION ---
-        const TB_URL = 'https://thingsboard.cloud'; // Change to your specific server URL
-        const DEVICE_TOKEN = 'eJ0JRURi0jCUGgrrGcxL'; // Used for pulling Telemetry
+        // =========================================================================
+        // 1. ADD YOUR KEYS HERE! (Keep the quotation marks)
+        // =========================================================================
+        const TB_URL = 'https://mqtt.thingsboard.cloud'; 
+        const DEVICE_ID = '72074ab0-224e-11f1-87fb-336ff60b6b9e'; 
+        const JWT_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJtb21vZXNsYW0wMDAwQGdtYWlsLmNvbSIsInVzZXJJZCI6Ijg3ZWUxNTgwLTIyM2UtMTFmMS1hZmQ3LWViNDMwYmZiNDI3ZiIsInNjb3BlcyI6WyJURU5BTlRfQURNSU4iXSwic2Vzc2lvbklkIjoiMzlmNTE0ZjYtYTQ3Ny00NDM5LWFiN2YtNWE5MjNlNWVmZmUxIiwiZXhwIjoxNzc3MDU5OTUzLCJpc3MiOiJ0aGluZ3Nib2FyZC5jbG91ZCIsImlhdCI6MTc3NzAzMTE1MywiZmlyc3ROYW1lIjoiTW9hbWVuIEVzbGFtIiwiZW5hYmxlZCI6dHJ1ZSwiaXNQdWJsaWMiOmZhbHNlLCJpc0JpbGxpbmdTZXJ2aWNlIjpmYWxzZSwicHJpdmFjeVBvbGljeUFjY2VwdGVkIjp0cnVlLCJ0ZXJtc09mVXNlQWNjZXB0ZWQiOnRydWUsInRlbmFudElkIjoiODdiZDFhNzAtMjIzZS0xMWYxLWFmZDctZWI0MzBiZmI0MjdmIiwiY3VzdG9tZXJJZCI6IjEzODE0MDAwLTFkZDItMTFiMi04MDgwLTgwODA4MDgwODA4MCJ9.PtvHX4KTCcqNawcxs8PQcZWvCoC4HixKZWm8O8SmRq561xFunHfDd6RzPJdOK2MRidwrd8pE1-2-pDr13mYyJw'; // Do not include the word "Bearer"
         
-        // SECURITY NOTE: Sending commands requires these two backend keys
-        const DEVICE_ID = 'YOUR_INTERNAL_THINGSBOARD_DEVICE_ID'; 
-        const JWT_TOKEN = 'YOUR_USER_JWT_TOKEN_FOR_RPC'; 
+        // The CORS Proxy acts as a secure bridge, bypassing IP Bans completely.
+        const CORS_PROXY = 'https://corsproxy.io/?';
 
-        const telemetryApiUrl = `${TB_URL}/api/v1/${DEVICE_TOKEN}/telemetry`;
-        const rpcApiUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
-
-        // --- 2. UI LOGIC: TAB SWITCHING ---
+        // --- 2. UI LOGIC ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -276,31 +231,34 @@
             event.target.classList.add('active');
         }
 
-        // --- 3. HARDWARE LOGIC: FETCH TELEMETRY ---
-       async function fetchRealData() {
+        let load1State = true; 
+        let load2State = false;
+
+        // --- 3. FETCH TELEMETRY ---
+        async function fetchRealData() {
             try {
-                // Fetching from your secure Vercel backend instead of ThingsBoard directly
-                const response = await fetch('/api/telemetry');
+                const targetUrl = `${TB_URL}/api/plugins/telemetry/DEVICE/${DEVICE_ID}/values/timeseries?keys=voltage,current,power`;
+                const finalUrl = CORS_PROXY + encodeURIComponent(targetUrl);
+
+                const response = await fetch(finalUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Authorization': `Bearer ${JWT_TOKEN}`
+                    }
+                });
                 
-                if (!response.ok) {
-                    console.warn("Telemetry fetch failed. Check Vercel Logs for 500 errors.");
-                    return; 
-                }
-                
+                if (!response.ok) return;
                 const data = await response.json();
 
                 let v = 0, i = 0, p = 0;
-
-                // Update Overview Metrics
                 if (data.voltage) {
                     v = parseFloat(data.voltage[0].value);
                     document.getElementById('voltage_full').innerText = v.toFixed(1);
                     document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
                     document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
                 }
-                if (data.current) {
-                    i = parseFloat(data.current[0].value);
-                }
+                if (data.current) { i = parseFloat(data.current[0].value); }
                 if (data.power) {
                     p = parseFloat(data.power[0].value); 
                     const power_kw = (p / 1000).toFixed(2);
@@ -314,7 +272,6 @@
                     }
                 }
 
-                // Dynamic Power Factor Math
                 if (v > 0 && i > 0 && p >= 0) {
                     const apparentPower = v * i;
                     let pf = apparentPower > 0 ? (p / apparentPower) : 0;
@@ -323,82 +280,65 @@
                     document.querySelector('.pf-value').innerText = pf.toFixed(2);
                     document.querySelector('.pf-gauge-fill').style.width = `${pf * 100}%`;
 
-                    let statusText = "Poor"; let statusColor = "var(--red)"; 
-                    if (pf >= 0.95) { statusText = "Excellent"; statusColor = "var(--green)"; } 
-                    else if (pf >= 0.85) { statusText = "Good"; statusColor = "var(--gold)"; }
-
-                    document.querySelector('.pf-status').innerText = statusText;
+                    let statusColor = pf >= 0.95 ? "var(--green)" : (pf >= 0.85 ? "var(--gold)" : "var(--red)");
+                    document.querySelector('.pf-status').innerText = pf >= 0.95 ? "Excellent" : (pf >= 0.85 ? "Good" : "Poor");
                     document.querySelector('.pf-status').style.color = statusColor;
                     document.querySelector('.pf-gauge-fill').style.backgroundColor = statusColor;
                     document.querySelector('.pf-value').style.color = statusColor;
                 }
-
             } catch (error) {
-                console.error("Failed to reach Vercel Telemetry API:", error);
+                console.error("Telemetry failed:", error);
             }
         }
 
-        // --- 4. HARDWARE LOGIC: SEND RPC COMMAND (RELAY TOGGLE) ---
-        let load1State = true;  // Assuming default is ON
-        let load2State = false; // Assuming default is OFF
-
+        // --- 4. SEND RELAY COMMANDS ---
         async function sendRpcCommand(loadNumber) {
             let newState;
             let btn = document.getElementById('btn-load' + loadNumber);
             let statusBadge = document.getElementById('status-load' + loadNumber);
             let btnText = document.getElementById('btn-text-' + loadNumber);
 
-            // Determine intended state
             if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
             else { load2State = !load2State; newState = load2State; }
 
-            // Optimistic UI update (makes the button feel instantly responsive)
             if (newState) {
-                btn.classList.remove('off');
-                btnText.innerText = "Turn OFF";
-                statusBadge.classList.remove('offline');
-                statusBadge.innerText = "● ONLINE";
+                btn.classList.remove('off'); btnText.innerText = "Turn OFF";
+                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
             } else {
-                btn.classList.add('off');
-                btnText.innerText = "Turn ON";
-                statusBadge.classList.add('offline');
-                statusBadge.innerText = "○ OFFLINE";
+                btn.classList.add('off'); btnText.innerText = "Turn ON";
+                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
             }
 
-            // Send Command to your new Vercel API
             try {
-                const response = await fetch('/api/relay', {
+                const targetUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
+                const finalUrl = CORS_PROXY + encodeURIComponent(targetUrl);
+
+                await fetch(finalUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Authorization': `Bearer ${JWT_TOKEN}`
                     },
                     body: JSON.stringify({
-                        loadNumber: loadNumber,
-                        state: newState
+                        method: `setRelay${loadNumber}`,
+                        params: newState
                     })
                 });
-
-                if (!response.ok) {
-                    console.error("Vercel API returned an error.");
-                    // Optional: Revert the button visuals here if the command fails
-                } else {
-                    console.log(`Success: Command sent via Vercel to Load ${loadNumber}`);
-                }
+                console.log(`Sent command to Load ${loadNumber}`);
             } catch (error) {
-                console.error("Network failed to reach Vercel API:", error);
+                console.error("RPC failed:", error);
             }
         }
 
-        // --- 5. INITIALIZATION ---
+        // --- 5. START UP ---
         function updateFooter() {
-            const now = new Date();
-            document.getElementById('footer-time').innerText = now.toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('footer-time').innerText = new Date().toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
 
         fetchRealData();
         updateFooter();
-        setInterval(fetchRealData, 10000); // Pull telemetry every 2 seconds
-        setInterval(updateFooter, 60000); // Update clock every minute
+        setInterval(fetchRealData, 10000); 
+        setInterval(updateFooter, 60000); 
     </script>
 </body>
 </html>
