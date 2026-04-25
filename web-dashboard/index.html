@@ -175,8 +175,8 @@
                 </div>
                 <div class="relay-data">
                     <div class="r-data-box"><p>Voltage</p><h4 id="r1-volts">229.8 V</h4></div>
-                    <div class="r-data-box"><p>Current</p><h4 id="r1-amps">8.2 A</h4></div>
-                    <div class="r-data-box"><p>Power</p><h4 id="r1-power">1.88 kW</h4></div>
+                    <div class="r-data-box"><p>Current</p><h4 id="r1-amps">0.00 A</h4></div>
+                    <div class="r-data-box"><p>Power</p><h4 id="r1-power">0.00 kW</h4></div>
                 </div>
                 <button class="toggle-btn" id="btn-load1" onclick="sendRpcCommand(1)">
                     <div class="btn-indicator"></div> <span id="btn-text-1">Turn OFF</span>
@@ -194,7 +194,7 @@
                 </div>
                 <div class="relay-data">
                     <div class="r-data-box"><p>Voltage</p><h4 id="r2-volts">229.8 V</h4></div>
-                    <div class="r-data-box"><p>Current</p><h4 id="r2-amps">0.0 A</h4></div>
+                    <div class="r-data-box"><p>Current</p><h4 id="r2-amps">0.00 A</h4></div>
                     <div class="r-data-box"><p>Power</p><h4 id="r2-power">0.00 kW</h4></div>
                 </div>
                 <button class="toggle-btn off" id="btn-load2" onclick="sendRpcCommand(2)">
@@ -212,100 +212,105 @@
         <div>Nexa Grid • Serverless Direct Bridge</div>
     </footer>
 
-<script>
-    // 1. CONFIGURATION
-    const DEVICE_ID = '72074ab0-224e-11f1-87fb-336ff60b6b9e'; 
-    let load1State = true; 
-    let load2State = false;
+    <script>
+        // 1. CONFIGURATION
+        let load1State = true; 
+        let load2State = false;
 
-    // 2. UI LOGIC: TAB SWITCHING
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        if(event) event.target.classList.add('active');
-    }
+        // 2. UI LOGIC: TAB SWITCHING
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(event) event.target.classList.add('active');
+        }
 
-    // 3. FETCH TELEMETRY FROM VERCEL
-    async function fetchRealData() {
-        try {
-            const response = await fetch('/api/telemetry');
-            if (!response.ok) throw new Error("Vercel error");
-            
-            const data = await response.json();
-            console.log("Telemetry Received:", data);
+        // 3. FETCH TELEMETRY FROM VERCEL
+        async function fetchRealData() {
+            try {
+                const response = await fetch('/api/telemetry');
+                if (!response.ok) throw new Error("Vercel error");
+                
+                const data = await response.json();
+                console.log("Telemetry Received:", data);
 
-            // ThingsBoard returns data in an array: { voltage: [{ value: "230", ts: ... }] }
-            const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
+                // ThingsBoard returns data in an array: { voltage: [{ value: "230", ts: ... }] }
+                const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
 
-            const v = getVal('voltage');
-            const i = getVal('current');
-            const p = getVal('power');
+                const v = getVal('voltage');
+                const i = getVal('current');
+                const p = getVal('power');
 
-            // Update Main Metrics
-            document.getElementById('voltage_full').innerText = v.toFixed(1);
-            document.getElementById('totalPower').innerText = (p / 1000).toFixed(2);
-            
-            // Update Load Cards
-            document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
-            document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
-            
-            if(load1State) {
-                document.getElementById('r1-power').innerText = (p / 1000).toFixed(2) + ' kW';
-                document.getElementById('load1-split').innerText = (p / 1000).toFixed(2) + ' kW';
+                // Update Main Metrics
+                document.getElementById('voltage_full').innerText = v.toFixed(1);
+                document.getElementById('totalPower').innerText = (p / 1000).toFixed(2);
+                
+                // Update Load Cards
+                document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
+                document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
+                
+                if(load1State) {
+                    // Update Power & Current
+                    document.getElementById('r1-power').innerText = (p / 1000).toFixed(2) + ' kW';
+                    document.getElementById('load1-split').innerText = (p / 1000).toFixed(2) + ' kW';
+                    document.getElementById('r1-amps').innerText = i.toFixed(2) + ' A'; 
+                } else {
+                    document.getElementById('r1-power').innerText = '0.00 kW';
+                    document.getElementById('load1-split').innerText = '0.00 kW';
+                    document.getElementById('r1-amps').innerText = '0.00 A';
+                }
+
+                // Power Factor Calculation
+                if (v > 0 && i > 0) {
+                    const pf = Math.min(1.0, p / (v * i));
+                    document.querySelector('.pf-value').innerText = pf.toFixed(2);
+                    document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
+                }
+
+            } catch (error) {
+                console.error("Vercel Telemetry API unreachable:", error);
+            }
+        }
+
+        // 4. SEND RELAY COMMANDS TO VERCEL
+        async function sendRpcCommand(loadNumber) {
+            let newState;
+            const btn = document.getElementById('btn-load' + loadNumber);
+            const statusBadge = document.getElementById('status-load' + loadNumber);
+            const btnText = document.getElementById('btn-text-' + loadNumber);
+
+            if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
+            else { load2State = !load2State; newState = load2State; }
+
+            // UI Feedback
+            if (newState) {
+                btn.classList.remove('off'); btnText.innerText = "Turn OFF";
+                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
+            } else {
+                btn.classList.add('off'); btnText.innerText = "Turn ON";
+                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
             }
 
-            // Power Factor Calculation
-            if (v > 0 && i > 0) {
-                const pf = Math.min(1.0, p / (v * i));
-                document.querySelector('.pf-value').innerText = pf.toFixed(2);
-                document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
+            try {
+                await fetch('/api/relay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ loadNumber, state: newState })
+                });
+            } catch (error) {
+                console.error("Relay Command failed:", error);
             }
-
-        } catch (error) {
-            console.error("Vercel Telemetry API unreachable:", error);
-        }
-    }
-
-    // 4. SEND RELAY COMMANDS TO VERCEL
-    async function sendRpcCommand(loadNumber) {
-        let newState;
-        const btn = document.getElementById('btn-load' + loadNumber);
-        const statusBadge = document.getElementById('status-load' + loadNumber);
-        const btnText = document.getElementById('btn-text-' + loadNumber);
-
-        if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
-        else { load2State = !load2State; newState = load2State; }
-
-        // UI Feedback
-        if (newState) {
-            btn.classList.remove('off'); btnText.innerText = "Turn OFF";
-            statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
-        } else {
-            btn.classList.add('off'); btnText.innerText = "Turn ON";
-            statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
         }
 
-        try {
-            await fetch('/api/relay', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ loadNumber, state: newState })
-            });
-        } catch (error) {
-            console.error("Relay Command failed:", error);
+        // 5. INITIALIZE
+        function updateFooter() {
+            document.getElementById('footer-time').innerText = new Date().toLocaleString();
         }
-    }
 
-    // 5. INITIALIZE
-    function updateFooter() {
-        document.getElementById('footer-time').innerText = new Date().toLocaleString();
-    }
-
-    fetchRealData();
-    updateFooter();
-    setInterval(fetchRealData, 10000); // Poll every 10 seconds to avoid IP blocks
-    setInterval(updateFooter, 60000);
-</script>
+        fetchRealData();
+        updateFooter();
+        setInterval(fetchRealData, 10000); // Poll every 10 seconds to avoid IP blocks
+        setInterval(updateFooter, 60000);
+    </script>
 </body>
 </html>
