@@ -235,93 +235,41 @@
         let load2State = false;
 
         // --- 3. FETCH TELEMETRY ---
-        async function fetchRealData() {
-            try {
-                const targetUrl = `${TB_URL}/api/plugins/telemetry/DEVICE/${DEVICE_ID}/values/timeseries?keys=voltage,current,power`;
-                // AllOrigins requires the URL to be encoded
-                const finalUrl = `${PROXY_URL}${encodeURIComponent(targetUrl)}&t=${Date.now()}`;
+async function fetchRealData() {
+    try {
+        // Pointing directly to your Vercel backend
+        const response = await fetch('/api/telemetry');
+        const data = await response.json();
+        
+        console.log("Live Telemetry:", data);
 
-                const response = await fetch(finalUrl);
-                const container = await response.json();
-                
-                // AllOrigins returns the data inside a .contents string
-                const data = JSON.parse(container.contents);
-
-                let v = 0, i = 0, p = 0;
-                if (data.voltage) {
-                    v = parseFloat(data.voltage[0].value);
-                    document.getElementById('voltage_full').innerText = v.toFixed(1);
-                    document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
-                    document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
-                }
-                if (data.current) { i = parseFloat(data.current[0].value); }
-                if (data.power) {
-                    p = parseFloat(data.power[0].value); 
-                    const power_kw = (p / 1000).toFixed(2);
-                    document.getElementById('totalPower').innerText = power_kw;
-                    document.getElementById('load-total-split').innerText = power_kw + ' kW';
-                    
-                    if(load1State) {
-                        document.getElementById('load1-split').innerText = power_kw + ' kW';
-                        document.getElementById('r1-power').innerText = power_kw + ' kW';
-                    }
-                }
-
-                // Power Factor Calculation
-                if (v > 0 && i > 0) {
-                    const apparentPower = v * i;
-                    let pf = p / apparentPower;
-                    if (pf > 1) pf = 1;
-                    document.querySelector('.pf-value').innerText = pf.toFixed(2);
-                    document.querySelector('.pf-gauge-fill').style.width = `${pf * 100}%`;
-                }
-            } catch (error) {
-                console.error("Telemetry error:", error);
-            }
+        if (data.voltage) {
+            document.getElementById('voltage_full').innerText = parseFloat(data.voltage).toFixed(1);
+            document.getElementById('r1-volts').innerText = parseFloat(data.voltage).toFixed(1) + ' V';
         }
+        // ... rest of your UI update logic
+    } catch (error) {
+        console.error("Vercel API Timeout/Error:", error);
+    }
+}
 
-        // --- 4. SEND RELAY COMMANDS (RPC) ---
-        async function sendRpcCommand(loadNumber) {
-            let newState;
-            let btn = document.getElementById('btn-load' + loadNumber);
-            let statusBadge = document.getElementById('status-load' + loadNumber);
-            let btnText = document.getElementById('btn-text-' + loadNumber);
+// --- 4. SEND RELAY COMMANDS ---
+async function sendRpcCommand(loadNumber) {
+    // ... your toggle logic here ...
 
-            if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
-            else { load2State = !load2State; newState = load2State; }
-
-            // UI Feedback
-            if (newState) {
-                btn.classList.remove('off'); btnText.innerText = "Turn OFF";
-                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
-            } else {
-                btn.classList.add('off'); btnText.innerText = "Turn ON";
-                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
-            }
-
-            try {
-                // RPC requires a POST, which proxies struggle with. 
-                // We will send this directly to TB. If CORS fails, we use the Fallback.
-                const rpcUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
-                
-                await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Authorization': `Bearer ${JWT_TOKEN}`
-                    },
-                    body: JSON.stringify({
-                        method: `setRelay${loadNumber}`,
-                        params: newState
-                    })
-                });
-            } catch (error) {
-                console.log("Direct RPC blocked by CORS, trying proxy...");
-                // Note: Most public proxies do not support POST requests with headers.
-                // If this fails, the ESP32 should be programmed to "poll" an attribute instead.
-            }
-        }
-
+    try {
+        await fetch('/api/relay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                method: `setRelay${loadNumber}`,
+                params: newState
+            })
+        });
+    } catch (error) {
+        console.error("Vercel Relay Error:", error);
+    }
+}
         // --- 5. INITIALIZE ---
         fetchRealData();
         setInterval(fetchRealData, 5000); // Update every 5 seconds
