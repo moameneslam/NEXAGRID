@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexa Grid Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* --- CSS: Global Theme --- */
         :root {
@@ -64,7 +65,7 @@
         .metric-unit { color: var(--text-sub); font-size: 1.1em; }
         
         .main-container { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
-        .graph-placeholder { height: 350px; display: flex; justify-content: center; align-items: center; border: 1px dashed var(--border-color); border-radius: 8px; margin-top: 20px; color: var(--text-sub); }
+        .graph-container { height: 350px; width: 100%; margin-top: 20px; position: relative;}
         
         /* Sidebar Elements */
         .sidebar { display: flex; flex-direction: column; gap: 20px; }
@@ -128,24 +129,26 @@
             </div>
             <div class="card">
                 <div class="accent-bar" style="background-color: var(--orange);"></div>
-                <div class="metric-label">Frequency</div>
-                <div class="metric-value-container"><div class="metric-value" id="frequency">50.01</div><div class="metric-unit">Hz</div></div>
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value-container"><div class="metric-value" id="totalCost">0.00</div><div class="metric-unit">EGP</div></div>
             </div>
             <div class="card">
                 <div class="accent-bar" style="background-color: var(--gold);"></div>
                 <div class="metric-label">Energy Today</div>
-                <div class="metric-value-container"><div class="metric-value" id="energyToday">18.72</div><div class="metric-unit">kWh</div></div>
+                <div class="metric-value-container"><div class="metric-value" id="energyToday">0.00</div><div class="metric-unit">kWh</div></div>
             </div>
         </div>
 
         <div class="main-container">
             <div class="card">
-                <h3>Power Over Time</h3>
-                <div class="graph-placeholder">[ Chart Placeholder ]</div>
+                <h3>Live Power Draw</h3>
+                <div class="graph-container">
+                    <canvas id="liveChart"></canvas>
+                </div>
             </div>
             <div class="sidebar">
                 <div class="card">
-                    <div class="metric-label">Power Factor</div>
+                    <div class="metric-label">Overall Power Factor</div>
                     <div class="pf-value">0.00</div>
                     <div class="pf-status">Calculating...</div>
                     <div class="pf-gauge"><div class="pf-gauge-fill" style="width: 0%;"></div></div>
@@ -153,9 +156,9 @@
                 <div class="card">
                     <div class="metric-label">Load Breakdown</div>
                     <div class="load-table">
-                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span><span id="load1-split">-- kW</span></div>
-                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span><span id="load2-split">-- kW</span></div>
-                        <div class="load-row"><span>Total</span><span style="color: var(--teal);" id="load-total-split">-- kW</span></div>
+                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span><span id="load1-split">0.00 kW</span></div>
+                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span><span id="load2-split">0.00 kW</span></div>
+                        <div class="load-row"><span>Total</span><span style="color: var(--teal);" id="load-total-split">0.00 kW</span></div>
                     </div>
                 </div>
             </div>
@@ -174,7 +177,7 @@
                     <div class="relay-status" id="status-load1">● ONLINE</div>
                 </div>
                 <div class="relay-data">
-                    <div class="r-data-box"><p>Voltage</p><h4 id="r1-volts">229.8 V</h4></div>
+                    <div class="r-data-box"><p>Voltage</p><h4 id="r1-volts">0.0 V</h4></div>
                     <div class="r-data-box"><p>Current</p><h4 id="r1-amps">0.00 A</h4></div>
                     <div class="r-data-box"><p>Power</p><h4 id="r1-power">0.00 kW</h4></div>
                 </div>
@@ -193,7 +196,7 @@
                     <div class="relay-status offline" id="status-load2">○ OFFLINE</div>
                 </div>
                 <div class="relay-data">
-                    <div class="r-data-box"><p>Voltage</p><h4 id="r2-volts">229.8 V</h4></div>
+                    <div class="r-data-box"><p>Voltage</p><h4 id="r2-volts">0.0 V</h4></div>
                     <div class="r-data-box"><p>Current</p><h4 id="r2-amps">0.00 A</h4></div>
                     <div class="r-data-box"><p>Power</p><h4 id="r2-power">0.00 kW</h4></div>
                 </div>
@@ -204,7 +207,16 @@
         </div>
     </div>
 
-    <div id="tab-analytics" class="tab-content"><div class="card"><h2>System Analytics</h2></div></div>
+    <div id="tab-analytics" class="tab-content">
+        <div class="card" style="height: 500px;">
+            <h2>Historical Power Analytics</h2>
+            <div class="sub-text" style="margin-bottom: 20px;">Tracking Load 1 and Load 2 active power consumption over time.</div>
+            <div class="graph-container" style="height: 400px;">
+                <canvas id="analyticsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <div id="tab-settings" class="tab-content"><div class="card"><h2>Device Configuration</h2></div></div>
 
     <footer>
@@ -216,6 +228,8 @@
         // 1. CONFIGURATION
         let load1State = true; 
         let load2State = false;
+        let chartInstance1 = null;
+        let chartInstance2 = null;
 
         // 2. UI LOGIC: TAB SWITCHING
         function switchTab(tabId) {
@@ -225,7 +239,51 @@
             if(event) event.target.classList.add('active');
         }
 
-        // 3. FETCH TELEMETRY FROM VERCEL
+        // 3. INITIALIZE CHART.JS GRAPHS
+        function initCharts() {
+            const chartConfig = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Load 1 (W)', borderColor: '#39c5cf', backgroundColor: 'rgba(57, 197, 207, 0.1)', data: [], fill: true, tension: 0.4 },
+                        { label: 'Load 2 (W)', borderColor: '#f2cc60', backgroundColor: 'rgba(242, 204, 96, 0.1)', data: [], fill: true, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                        x: { grid: { display: false }, ticks: { color: '#8b949e' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f0f6fc' } } }
+                }
+            };
+
+            const ctx1 = document.getElementById('liveChart').getContext('2d');
+            const ctx2 = document.getElementById('analyticsChart').getContext('2d');
+            
+            chartInstance1 = new Chart(ctx1, JSON.parse(JSON.stringify(chartConfig)));
+            chartInstance2 = new Chart(ctx2, JSON.parse(JSON.stringify(chartConfig)));
+        }
+
+        function updateCharts(p1, p2) {
+            const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            
+            [chartInstance1, chartInstance2].forEach(chart => {
+                if (chart.data.labels.length > 15) { // Keep last 15 points
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.shift();
+                }
+                chart.data.labels.push(now);
+                chart.data.datasets[0].data.push(p1);
+                chart.data.datasets[1].data.push(p2);
+                chart.update('none'); // Update without full animation for smoother live data
+            });
+        }
+
+        // 4. FETCH TELEMETRY FROM VERCEL
         async function fetchRealData() {
             try {
                 const response = await fetch('/api/telemetry');
@@ -234,45 +292,57 @@
                 const data = await response.json();
                 console.log("Telemetry Received:", data);
 
-                // ThingsBoard returns data in an array: { voltage: [{ value: "230", ts: ... }] }
                 const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
 
+                // Extract Specific Keys based on your ESP32 Code
                 const v = getVal('voltage');
-                const i = getVal('current');
-                const p = getVal('power');
+                const i1 = getVal('current1');
+                const i2 = getVal('current2');
+                const p1 = getVal('power1');
+                const p2 = getVal('power2');
+                const eTotal = getVal('energy_total');
+                const cTotal = getVal('cost_total');
+
+                const totalP = p1 + p2;
+                const totalI = i1 + i2;
 
                 // Update Main Metrics
                 document.getElementById('voltage_full').innerText = v.toFixed(1);
-                document.getElementById('totalPower').innerText = (p / 1000).toFixed(2);
-                
-                // Update Load Cards
-                document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
-                document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
-                
-                if(load1State) {
-                    // Update Power & Current
-                    document.getElementById('r1-power').innerText = (p / 1000).toFixed(2) + ' kW';
-                    document.getElementById('load1-split').innerText = (p / 1000).toFixed(2) + ' kW';
-                    document.getElementById('r1-amps').innerText = i.toFixed(2) + ' A'; 
-                } else {
-                    document.getElementById('r1-power').innerText = '0.00 kW';
-                    document.getElementById('load1-split').innerText = '0.00 kW';
-                    document.getElementById('r1-amps').innerText = '0.00 A';
-                }
+                document.getElementById('totalPower').innerText = (totalP / 1000).toFixed(2);
+                document.getElementById('energyToday').innerText = eTotal.toFixed(4);
+                document.getElementById('totalCost').innerText = cTotal.toFixed(3);
 
-                // Power Factor Calculation
-                if (v > 0 && i > 0) {
-                    const pf = Math.min(1.0, p / (v * i));
+                // Update Load Breakdown Table
+                document.getElementById('load1-split').innerText = (p1 / 1000).toFixed(2) + ' kW';
+                document.getElementById('load2-split').innerText = (p2 / 1000).toFixed(2) + ' kW';
+                document.getElementById('load-total-split').innerText = (totalP / 1000).toFixed(2) + ' kW';
+                
+                // Update Load 1 Card
+                document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
+                document.getElementById('r1-amps').innerText = i1.toFixed(2) + ' A';
+                document.getElementById('r1-power').innerText = (p1 / 1000).toFixed(2) + ' kW';
+
+                // Update Load 2 Card
+                document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
+                document.getElementById('r2-amps').innerText = i2.toFixed(2) + ' A';
+                document.getElementById('r2-power').innerText = (p2 / 1000).toFixed(2) + ' kW';
+
+                // Overall Power Factor Calculation
+                if (v > 0 && totalI > 0) {
+                    const pf = Math.min(1.0, totalP / (v * totalI));
                     document.querySelector('.pf-value').innerText = pf.toFixed(2);
                     document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
                 }
+
+                // Push data to graphs
+                updateCharts(p1, p2);
 
             } catch (error) {
                 console.error("Vercel Telemetry API unreachable:", error);
             }
         }
 
-        // 4. SEND RELAY COMMANDS TO VERCEL
+        // 5. SEND RELAY COMMANDS TO VERCEL
         async function sendRpcCommand(loadNumber) {
             let newState;
             const btn = document.getElementById('btn-load' + loadNumber);
@@ -302,14 +372,15 @@
             }
         }
 
-        // 5. INITIALIZE
+        // 6. INITIALIZE
         function updateFooter() {
             document.getElementById('footer-time').innerText = new Date().toLocaleString();
         }
 
+        initCharts();
         fetchRealData();
         updateFooter();
-        setInterval(fetchRealData, 10000); // Poll every 10 seconds to avoid IP blocks
+        setInterval(fetchRealData, 10000); // Poll every 10 seconds
         setInterval(updateFooter, 60000);
     </script>
 </body>
