@@ -221,12 +221,13 @@
         <div>Nexa Grid • Serverless Direct Bridge</div>
     </footer>
 
-    <script>
+<script>
         // 1. CONFIGURATION & STATE
         let load1State = true; 
         let load2State = false;
         let chartInstance1 = null;
         let chartInstance2 = null;
+        let rpcCooldown = 0; // NEW: Prevents the "Rubber Band" effect
 
         // 2. UI LOGIC: TAB SWITCHING
         function switchTab(tabId) {
@@ -269,7 +270,7 @@
                         x: { grid: { display: false }, ticks: { color: '#8b949e' } }
                     },
                     plugins: { legend: { labels: { color: '#f0f6fc' } } },
-                    animation: { duration: 0 } // Disables animation for smoother live updates
+                    animation: { duration: 0 } 
                 }
             };
 
@@ -310,9 +311,21 @@
                 const eTotal = getVal('energy_total');
                 const cTotal = getVal('cost_total');
                 
-                // Read physical hardware states
-                load1State = (getVal('state1') === 1);
-                load2State = (getVal('state2') === 1);
+                // --- THE FIX: SMART STATE PARSING & COOLDOWN ---
+                // Only sync the UI with the cloud if we aren't waiting for a button click to process
+                if (Date.now() > rpcCooldown) {
+                    const s1 = data['state1'] ? data['state1'][0].value.toString().toLowerCase() : null;
+                    const s2 = data['state2'] ? data['state2'][0].value.toString().toLowerCase() : null;
+
+                    if (s1 !== null) {
+                        load1State = (s1 === "1" || s1 === "true" || s1 === "1.0");
+                        syncButtonUI(1, load1State);
+                    }
+                    if (s2 !== null) {
+                        load2State = (s2 === "1" || s2 === "true" || s2 === "1.0");
+                        syncButtonUI(2, load2State);
+                    }
+                }
 
                 const totalP = p1 + p2;
                 const totalI = i1 + i2;
@@ -336,10 +349,6 @@
                 document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
                 document.getElementById('r2-amps').innerText = i2.toFixed(2) + ' A';
                 document.getElementById('r2-power').innerText = (p2 / 1000).toFixed(2) + ' kW';
-
-                // Visually Sync Buttons with physical hardware
-                syncButtonUI(1, load1State);
-                syncButtonUI(2, load2State);
 
                 // Overall Power Factor Calculation
                 if (v > 0 && totalI > 0) {
@@ -367,15 +376,22 @@
                 newState = load2State; 
             }
 
-            // Instantly update UI for a snappy user experience (Optimistic UI)
+            // Instantly update UI and apply an 8-second cooldown to block telemetry overrides
             syncButtonUI(loadNumber, newState);
+            rpcCooldown = Date.now() + 8000; 
 
             try {
-                await fetch('/api/relay', {
+                const res = await fetch('/api/relay', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ loadNumber, state: newState })
                 });
+
+                // --- THE FIX: ALERT IF TOKEN IS EXPIRED ---
+                if (!res.ok) {
+                    alert("⚠️ Command Failed! Your ThingsBoard JWT Token has likely expired. Please generate a new one, update your Vercel Environment Variables, and redeploy.");
+                }
+
             } catch (error) {
                 console.error("Relay Command failed:", error);
             }
@@ -388,7 +404,7 @@
         fetchRealData();
         updateFooter();
         
-        // Poll for new hardware data every 5 seconds (Matches ESP32 publish rate)
+        // Poll for new hardware data every 5 seconds
         setInterval(fetchRealData, 5000); 
         setInterval(updateFooter, 60000);
     </script>
