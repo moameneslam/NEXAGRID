@@ -1,22 +1,20 @@
 export default async function handler(req, res) {
-    // 1. Only accept POST requests (button clicks)
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 2. Read the variables you saved in the Vercel Dashboard
     const { TB_URL, DEVICE_ID, JWT_TOKEN } = process.env;
 
     if (!TB_URL || !DEVICE_ID || !JWT_TOKEN) {
         return res.status(500).json({ error: 'Vercel Environment Variables are missing.' });
     }
 
-    // 3. Unpack the command from the frontend
     const { loadNumber, state } = req.body;
-    const thingsboardUrl = `${TB_URL}/api/plugins/rpc/twoway/${DEVICE_ID}`;
+    
+    // THE FIX: The modern ThingsBoard RPC endpoint (removed /plugins/)
+    const thingsboardUrl = `${TB_URL}/api/rpc/twoway/${DEVICE_ID}`;
 
     try {
-        // 4. Send the secure command to ThingsBoard
         const tbResponse = await fetch(thingsboardUrl, {
             method: 'POST',
             headers: {
@@ -25,20 +23,25 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
                 method: `setRelay${loadNumber}`,
-                params: state
+                params: state,
+                timeout: 5000 // Tell TB to timeout after 5 seconds if ESP32 ignores it
             })
         });
 
+        // X-RAY VISION: Capture the exact reason ThingsBoard rejected it
         if (!tbResponse.ok) {
-            throw new Error(`ThingsBoard rejected the command. Status: ${tbResponse.status}`);
+            const errorText = await tbResponse.text();
+            console.error("ThingsBoard Error Details:", errorText);
+            return res.status(tbResponse.status).json({ 
+                error: `TB Error ${tbResponse.status}: ${errorText}` 
+            });
         }
 
-        // 5. Tell the frontend it worked!
         const tbData = await tbResponse.json();
         return res.status(200).json({ success: true, data: tbData });
 
     } catch (error) {
         console.error('Relay Error:', error);
-        return res.status(500).json({ error: 'Failed to talk to ThingsBoard.' });
+        return res.status(500).json({ error: 'Failed to communicate with ThingsBoard server.' });
     }
 }

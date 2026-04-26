@@ -376,7 +376,7 @@
                 newState = load2State; 
             }
 
-            // Instantly update UI and apply an 8-second cooldown to block telemetry overrides
+            // Instantly update UI and apply cooldown
             syncButtonUI(loadNumber, newState);
             rpcCooldown = Date.now() + 8000; 
 
@@ -387,13 +387,19 @@
                     body: JSON.stringify({ loadNumber, state: newState })
                 });
 
-                // --- THE FIX: ALERT IF TOKEN IS EXPIRED ---
+                // --- X-RAY ALERT ---
                 if (!res.ok) {
-                    alert("⚠️ Command Failed! Your ThingsBoard JWT Token has likely expired. Please generate a new one, update your Vercel Environment Variables, and redeploy.");
+                    const errData = await res.json();
+                    alert("⚠️ Command Failed!\nReason: " + (errData.error || "Unknown Error"));
+                    
+                    // The command failed, so revert the UI button back to normal
+                    if (loadNumber === 1) { load1State = !newState; syncButtonUI(1, load1State); } 
+                    else { load2State = !newState; syncButtonUI(2, load2State); }
                 }
 
             } catch (error) {
                 console.error("Relay Command failed:", error);
+                alert("⚠️ Network error. Could not reach Vercel.");
             }
         }
 
