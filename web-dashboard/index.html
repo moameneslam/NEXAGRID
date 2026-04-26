@@ -84,6 +84,7 @@
         .relay-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;}
         .relay-status { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; background: rgba(46, 204, 113, 0.2); color: var(--green); border: 1px solid var(--green); }
         .relay-status.offline { background: rgba(231, 76, 60, 0.2); color: var(--red); border: 1px solid var(--red); }
+        .relay-status.warning { background: rgba(230, 126, 34, 0.2); color: var(--orange); border: 1px solid var(--orange); }
         .relay-data { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
         .r-data-box p { margin: 0; color: var(--text-sub); font-size: 0.85em; }
         .r-data-box h4 { margin: 5px 0 0; font-size: 1.2em; }
@@ -238,17 +239,25 @@
         }
 
         // 3. UI LOGIC: BUTTON SYNC ENGINE (TWO-WAY SYNC)
-        function syncButtonUI(loadNumber, isOn) {
+        function syncButtonUI(loadNumber, isOn, currentAmps = 0) {
             const btn = document.getElementById('btn-load' + loadNumber);
             const statusBadge = document.getElementById('status-load' + loadNumber);
             const btnText = document.getElementById('btn-text-' + loadNumber);
 
             if (isOn) {
                 btn.classList.remove('off'); btnText.innerText = "Turn OFF";
-                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
+                // New Critical Check
+                if (currentAmps >= 3.5) {
+                    statusBadge.className = 'relay-status warning';
+                    statusBadge.innerText = "⚠️ CRITICAL";
+                } else {
+                    statusBadge.className = 'relay-status';
+                    statusBadge.innerText = "● ONLINE";
+                }
             } else {
                 btn.classList.add('off'); btnText.innerText = "Turn ON";
-                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
+                statusBadge.className = 'relay-status offline';
+                statusBadge.innerText = "○ OFFLINE";
             }
         }
 
