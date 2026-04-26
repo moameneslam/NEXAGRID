@@ -41,8 +41,8 @@
         .logo { font-size: 1.5em; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px;}
         .logo-icon { width: 24px; height: 24px; background-color: var(--teal); border-radius: 4px; }
         
-        .connection-status { font-size: 0.9em; display: flex; align-items: center; color: var(--green); }
-        .status-indicator { height: 8px; width: 8px; border-radius: 50%; background-color: var(--green); margin-right: 8px; box-shadow: 0 0 8px var(--green); }
+        .connection-status { font-size: 0.9em; display: flex; align-items: center; font-weight: 600; }
+        .status-indicator { height: 8px; width: 8px; border-radius: 50%; margin-right: 8px; }
 
         nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 25px; }
         .tab-btn { background: none; border: none; color: var(--text-sub); font-size: 1em; cursor: pointer; padding: 10px 20px; border-bottom: 2px solid transparent; transition: all 0.2s; }
@@ -110,57 +110,28 @@
                 <button class="tab-btn" onclick="switchTab('tab-analytics')">Analytics</button>
             </nav>
         </div>
-        <div class="connection-status">
-            <div class="status-indicator"></div> ESP32 Online
+        <div class="connection-status" id="main-conn-status" style="color: var(--text-sub);">
+            <div class="status-indicator" id="main-conn-dot" style="background-color: var(--text-sub);"></div> 
+            <span id="main-conn-text">Connecting...</span>
         </div>
     </header>
 
     <div id="tab-overview" class="tab-content active">
         <div class="summary-grid">
-            <div class="card">
-                <div class="accent-bar" style="background-color: var(--teal);"></div>
-                <div class="metric-label">Total Power</div>
-                <div class="metric-value-container"><div class="metric-value" id="totalPower">0.00</div><div class="metric-unit">kW</div></div>
-            </div>
-            <div class="card">
-                <div class="accent-bar" style="background-color: var(--green);"></div>
-                <div class="metric-label">Voltage</div>
-                <div class="metric-value-container"><div class="metric-value" id="voltage_full">0.0</div><div class="metric-unit">V</div></div>
-            </div>
-            <div class="card">
-                <div class="accent-bar" style="background-color: var(--orange);"></div>
-                <div class="metric-label">Total Cost</div>
-                <div class="metric-value-container"><div class="metric-value" id="totalCost">0.00</div><div class="metric-unit">EGP</div></div>
-            </div>
-            <div class="card">
-                <div class="accent-bar" style="background-color: var(--gold);"></div>
-                <div class="metric-label">Energy Today</div>
-                <div class="metric-value-container"><div class="metric-value" id="energyToday">0.00</div><div class="metric-unit">kWh</div></div>
-            </div>
+            <div class="card"><div class="accent-bar" style="background-color: var(--teal);"></div><div class="metric-label">Total Power</div><div class="metric-value-container"><div class="metric-value" id="totalPower">0.00</div><div class="metric-unit">kW</div></div></div>
+            <div class="card"><div class="accent-bar" style="background-color: var(--green);"></div><div class="metric-label">Voltage</div><div class="metric-value-container"><div class="metric-value" id="voltage_full">0.0</div><div class="metric-unit">V</div></div></div>
+            <div class="card"><div class="accent-bar" style="background-color: var(--orange);"></div><div class="metric-label">Total Cost</div><div class="metric-value-container"><div class="metric-value" id="totalCost">0.00</div><div class="metric-unit">EGP</div></div></div>
+            <div class="card"><div class="accent-bar" style="background-color: var(--gold);"></div><div class="metric-label">Energy Today</div><div class="metric-value-container"><div class="metric-value" id="energyToday">0.00</div><div class="metric-unit">kWh</div></div></div>
         </div>
-
         <div class="main-container">
-            <div class="card">
-                <h3>Live Power Draw</h3>
-                <div class="graph-container">
-                    <canvas id="liveChart"></canvas>
-                </div>
-            </div>
+            <div class="card"><h3>Live Power Draw</h3><div class="graph-container"><canvas id="liveChart"></canvas></div></div>
             <div class="sidebar">
-                <div class="card">
-                    <div class="metric-label">Overall Power Factor</div>
-                    <div class="pf-value">0.00</div>
-                    <div class="pf-status">Calculating...</div>
-                    <div class="pf-gauge"><div class="pf-gauge-fill" style="width: 0%;"></div></div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Load Breakdown</div>
-                    <div class="load-table">
-                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span><span id="load1-split">0.00 kW</span></div>
-                        <div class="load-row"><span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span><span id="load2-split">0.00 kW</span></div>
-                        <div class="load-row"><span>Total</span><span style="color: var(--teal);" id="load-total-split">0.00 kW</span></div>
-                    </div>
-                </div>
+                <div class="card"><div class="metric-label">Overall Power Factor</div><div class="pf-value">0.00</div><div class="pf-status">Calculating...</div><div class="pf-gauge"><div class="pf-gauge-fill" style="width: 0%;"></div></div></div>
+                <div class="card"><div class="metric-label">Load Breakdown</div><div class="load-table">
+                    <div class="load-row"><span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span><span id="load1-split">0.00 kW</span></div>
+                    <div class="load-row"><span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span><span id="load2-split">0.00 kW</span></div>
+                    <div class="load-row"><span>Total</span><span style="color: var(--teal);" id="load-total-split">0.00 kW</span></div>
+                </div></div>
             </div>
         </div>
     </div>
@@ -170,29 +141,23 @@
             <div class="card" id="card-load1">
                 <div class="accent-bar" style="background-color: var(--teal);"></div>
                 <div class="relay-header">
-                    <div>
-                        <h2>Load 1</h2>
-                        <div class="sub-text">Circuit 1 • 220V AC</div>
-                    </div>
-                    <div class="relay-status" id="status-load1">● ONLINE</div>
+                    <div><h2>Load 1</h2><div class="sub-text">Circuit 1 • 220V AC</div></div>
+                    <div class="relay-status offline" id="status-load1">○ OFFLINE</div>
                 </div>
                 <div class="relay-data">
                     <div class="r-data-box"><p>Voltage</p><h4 id="r1-volts">0.0 V</h4></div>
                     <div class="r-data-box"><p>Current</p><h4 id="r1-amps">0.00 A</h4></div>
                     <div class="r-data-box"><p>Power</p><h4 id="r1-power">0.00 kW</h4></div>
                 </div>
-                <button class="toggle-btn" id="btn-load1" onclick="sendRpcCommand(1)">
-                    <div class="btn-indicator"></div> <span id="btn-text-1">Turn OFF</span>
+                <button class="toggle-btn off" id="btn-load1" onclick="sendRpcCommand(1)">
+                    <div class="btn-indicator"></div> <span id="btn-text-1">Turn ON</span>
                 </button>
             </div>
 
             <div class="card" id="card-load2">
                 <div class="accent-bar" style="background-color: var(--gold);"></div>
                 <div class="relay-header">
-                    <div>
-                        <h2>Load 2</h2>
-                        <div class="sub-text">Circuit 2 • 220V AC</div>
-                    </div>
+                    <div><h2>Load 2</h2><div class="sub-text">Circuit 2 • 220V AC</div></div>
                     <div class="relay-status offline" id="status-load2">○ OFFLINE</div>
                 </div>
                 <div class="relay-data">
@@ -211,9 +176,7 @@
         <div class="card" style="height: 500px;">
             <h2>Historical Power Analytics</h2>
             <div class="sub-text" style="margin-bottom: 20px;">Tracking Load 1 and Load 2 active power consumption over time.</div>
-            <div class="graph-container" style="height: 400px;">
-                <canvas id="analyticsChart"></canvas>
-            </div>
+            <div class="graph-container" style="height: 400px;"><canvas id="analyticsChart"></canvas></div>
         </div>
     </div>
 
@@ -222,13 +185,14 @@
         <div>Nexa Grid • Serverless Direct Bridge</div>
     </footer>
 
-<script>
+    <script>
         // 1. CONFIGURATION & STATE
-        let load1State = true; 
+        let load1State = false; 
         let load2State = false;
         let chartInstance1 = null;
         let chartInstance2 = null;
-        let rpcCooldown = 0; // NEW: Prevents the "Rubber Band" effect
+        let rpcCooldown = 0; 
+        let lastValidDataTime = 0; // NEW: Tracks ESP32 Connection
 
         // 2. UI LOGIC: TAB SWITCHING
         function switchTab(tabId) {
@@ -238,7 +202,7 @@
             if(event) event.target.classList.add('active');
         }
 
-        // 3. UI LOGIC: BUTTON SYNC ENGINE (TWO-WAY SYNC)
+        // 3. UI LOGIC: BUTTON SYNC ENGINE (NOW WITH AMPS)
         function syncButtonUI(loadNumber, isOn, currentAmps = 0) {
             const btn = document.getElementById('btn-load' + loadNumber);
             const statusBadge = document.getElementById('status-load' + loadNumber);
@@ -246,7 +210,8 @@
 
             if (isOn) {
                 btn.classList.remove('off'); btnText.innerText = "Turn OFF";
-                // New Critical Check
+                
+                // CRITICAL WARNING LOGIC
                 if (currentAmps >= 3.5) {
                     statusBadge.className = 'relay-status warning';
                     statusBadge.innerText = "⚠️ CRITICAL";
@@ -266,23 +231,17 @@
             const chartConfig = {
                 type: 'line',
                 data: {
-                    labels: [],
-                    datasets: [
+                    labels: [], datasets: [
                         { label: 'Load 1 (W)', borderColor: '#39c5cf', backgroundColor: 'rgba(57, 197, 207, 0.1)', data: [], fill: true, tension: 0.4 },
                         { label: 'Load 2 (W)', borderColor: '#f2cc60', backgroundColor: 'rgba(242, 204, 96, 0.1)', data: [], fill: true, tension: 0.4 }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
-                        x: { grid: { display: false }, ticks: { color: '#8b949e' } }
-                    },
-                    plugins: { legend: { labels: { color: '#f0f6fc' } } },
-                    animation: { duration: 0 } 
+                    scales: { y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }, x: { grid: { display: false }, ticks: { color: '#8b949e' } } },
+                    plugins: { legend: { labels: { color: '#f0f6fc' } } }, animation: { duration: 0 } 
                 }
             };
-
             chartInstance1 = new Chart(document.getElementById('liveChart').getContext('2d'), JSON.parse(JSON.stringify(chartConfig)));
             chartInstance2 = new Chart(document.getElementById('analyticsChart').getContext('2d'), JSON.parse(JSON.stringify(chartConfig)));
         }
@@ -290,14 +249,8 @@
         function updateCharts(p1, p2) {
             const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
             [chartInstance1, chartInstance2].forEach(chart => {
-                if (chart.data.labels.length > 15) { 
-                    chart.data.labels.shift(); 
-                    chart.data.datasets[0].data.shift(); 
-                    chart.data.datasets[1].data.shift();
-                }
-                chart.data.labels.push(now); 
-                chart.data.datasets[0].data.push(p1); 
-                chart.data.datasets[1].data.push(p2);
+                if (chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); chart.data.datasets[1].data.shift(); }
+                chart.data.labels.push(now); chart.data.datasets[0].data.push(p1); chart.data.datasets[1].data.push(p2);
                 chart.update(); 
             });
         }
@@ -309,9 +262,12 @@
                 if (!response.ok) throw new Error("Vercel error");
                 
                 const data = await response.json();
+                
+                // If we get valid data, the ESP32 is online!
+                lastValidDataTime = Date.now(); 
+
                 const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
 
-                // Extract all values
                 const v = getVal('voltage');
                 const i1 = getVal('current1');
                 const i2 = getVal('current2');
@@ -320,37 +276,33 @@
                 const eTotal = getVal('energy_total');
                 const cTotal = getVal('cost_total');
                 
-                // --- THE FIX: SMART STATE PARSING & COOLDOWN ---
-                // Only sync the UI with the cloud if we aren't waiting for a button click to process
+                // --- THE FIX: PASSING THE AMPS TO THE SYNC ENGINE ---
                 if (Date.now() > rpcCooldown) {
                     const s1 = data['state1'] ? data['state1'][0].value.toString().toLowerCase() : null;
                     const s2 = data['state2'] ? data['state2'][0].value.toString().toLowerCase() : null;
 
                     if (s1 !== null) {
                         load1State = (s1 === "1" || s1 === "true" || s1 === "1.0");
-                        syncButtonUI(1, load1State);
+                        syncButtonUI(1, load1State, i1); // PASSED AMPS!
                     }
                     if (s2 !== null) {
                         load2State = (s2 === "1" || s2 === "true" || s2 === "1.0");
-                        syncButtonUI(2, load2State);
+                        syncButtonUI(2, load2State, i2); // PASSED AMPS!
                     }
                 }
 
                 const totalP = p1 + p2;
                 const totalI = i1 + i2;
 
-                // Update Overview Metrics
                 document.getElementById('voltage_full').innerText = v.toFixed(1);
                 document.getElementById('totalPower').innerText = (totalP / 1000).toFixed(2);
                 document.getElementById('energyToday').innerText = eTotal.toFixed(4);
                 document.getElementById('totalCost').innerText = cTotal.toFixed(3);
 
-                // Update Load Breakdown Table
                 document.getElementById('load1-split').innerText = (p1 / 1000).toFixed(2) + ' kW';
                 document.getElementById('load2-split').innerText = (p2 / 1000).toFixed(2) + ' kW';
                 document.getElementById('load-total-split').innerText = (totalP / 1000).toFixed(2) + ' kW';
                 
-                // Update Detailed Load Cards
                 document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
                 document.getElementById('r1-amps').innerText = i1.toFixed(2) + ' A';
                 document.getElementById('r1-power').innerText = (p1 / 1000).toFixed(2) + ' kW';
@@ -359,33 +311,48 @@
                 document.getElementById('r2-amps').innerText = i2.toFixed(2) + ' A';
                 document.getElementById('r2-power').innerText = (p2 / 1000).toFixed(2) + ' kW';
 
-                // Overall Power Factor Calculation
                 if (v > 0 && totalI > 0) {
                     const pf = Math.min(1.0, totalP / (v * totalI));
                     document.querySelector('.pf-value').innerText = pf.toFixed(2);
                     document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
                 }
 
-                // Push new data points to charts
                 updateCharts(p1, p2);
 
             } catch (error) {
                 console.error("Vercel Telemetry API unreachable:", error);
             }
+            
+            // Check Connection Status after every fetch
+            updateConnectionStatus();
         }
 
-        // 6. SEND RELAY COMMANDS TO VERCEL
+        // 6. DYNAMIC CONNECTION STATUS CHECK
+        function updateConnectionStatus() {
+            const statusText = document.getElementById('main-conn-text');
+            const statusDot = document.getElementById('main-conn-dot');
+            const statusDiv = document.getElementById('main-conn-status');
+
+            // If we haven't received valid data in 15 seconds, assume it went offline
+            if (Date.now() - lastValidDataTime > 15000) {
+                statusText.innerText = "ESP32 Offline";
+                statusDiv.style.color = "var(--red)";
+                statusDot.style.backgroundColor = "var(--red)";
+                statusDot.style.boxShadow = "0 0 8px var(--red)";
+            } else {
+                statusText.innerText = "ESP32 Online";
+                statusDiv.style.color = "var(--green)";
+                statusDot.style.backgroundColor = "var(--green)";
+                statusDot.style.boxShadow = "0 0 8px var(--green)";
+            }
+        }
+
+        // 7. SEND RELAY COMMANDS
         async function sendRpcCommand(loadNumber) {
             let newState;
-            if (loadNumber === 1) { 
-                load1State = !load1State; 
-                newState = load1State; 
-            } else { 
-                load2State = !load2State; 
-                newState = load2State; 
-            }
+            if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
+            else { load2State = !load2State; newState = load2State; }
 
-            // Instantly update UI and apply cooldown
             syncButtonUI(loadNumber, newState);
             rpcCooldown = Date.now() + 8000; 
 
@@ -396,12 +363,9 @@
                     body: JSON.stringify({ loadNumber, state: newState })
                 });
 
-                // --- X-RAY ALERT ---
                 if (!res.ok) {
                     const errData = await res.json();
                     alert("⚠️ Command Failed!\nReason: " + (errData.error || "Unknown Error"));
-                    
-                    // The command failed, so revert the UI button back to normal
                     if (loadNumber === 1) { load1State = !newState; syncButtonUI(1, load1State); } 
                     else { load2State = !newState; syncButtonUI(2, load2State); }
                 }
@@ -412,14 +376,12 @@
             }
         }
 
-        // 7. INITIALIZATION & TIMERS
         function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
 
         initCharts();
         fetchRealData();
         updateFooter();
         
-        // Poll for new hardware data every 5 seconds
         setInterval(fetchRealData, 5000); 
         setInterval(updateFooter, 60000);
     </script>
