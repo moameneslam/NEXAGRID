@@ -5,9 +5,7 @@ export default async function handler(req, res) {
     }
 
     // 2. Read the variables you saved in the Vercel Dashboard
-    const TB_URL = process.env.TB_URL;
-    const DEVICE_ID = process.env.DEVICE_ID;
-    const JWT_TOKEN = process.env.JWT_TOKEN;
+    const { TB_URL, DEVICE_ID, JWT_TOKEN } = process.env;
 
     if (!TB_URL || !DEVICE_ID || !JWT_TOKEN) {
         return res.status(500).json({ error: 'Vercel Environment Variables are missing.' });

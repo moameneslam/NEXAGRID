@@ -107,7 +107,6 @@
                 <button class="tab-btn active" onclick="switchTab('tab-overview')">Overview</button>
                 <button class="tab-btn" onclick="switchTab('tab-loads')">Loads</button>
                 <button class="tab-btn" onclick="switchTab('tab-analytics')">Analytics</button>
-                <button class="tab-btn" onclick="switchTab('tab-settings')">Settings</button>
             </nav>
         </div>
         <div class="connection-status">
@@ -217,15 +216,13 @@
         </div>
     </div>
 
-    <div id="tab-settings" class="tab-content"><div class="card"><h2>Device Configuration</h2></div></div>
-
     <footer>
         <div id="footer-time"></div>
         <div>Nexa Grid • Serverless Direct Bridge</div>
     </footer>
 
     <script>
-        // 1. CONFIGURATION
+        // 1. CONFIGURATION & STATE
         let load1State = true; 
         let load2State = false;
         let chartInstance1 = null;
@@ -239,7 +236,22 @@
             if(event) event.target.classList.add('active');
         }
 
-        // 3. INITIALIZE CHART.JS GRAPHS
+        // 3. UI LOGIC: BUTTON SYNC ENGINE (TWO-WAY SYNC)
+        function syncButtonUI(loadNumber, isOn) {
+            const btn = document.getElementById('btn-load' + loadNumber);
+            const statusBadge = document.getElementById('status-load' + loadNumber);
+            const btnText = document.getElementById('btn-text-' + loadNumber);
+
+            if (isOn) {
+                btn.classList.remove('off'); btnText.innerText = "Turn OFF";
+                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
+            } else {
+                btn.classList.add('off'); btnText.innerText = "Turn ON";
+                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
+            }
+        }
+
+        // 4. CHART.JS INITIALIZATION
         function initCharts() {
             const chartConfig = {
                 type: 'line',
@@ -256,45 +268,40 @@
                         y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
                         x: { grid: { display: false }, ticks: { color: '#8b949e' } }
                     },
-                    plugins: { legend: { labels: { color: '#f0f6fc' } } }
+                    plugins: { legend: { labels: { color: '#f0f6fc' } } },
+                    animation: { duration: 0 } // Disables animation for smoother live updates
                 }
             };
 
-            const ctx1 = document.getElementById('liveChart').getContext('2d');
-            const ctx2 = document.getElementById('analyticsChart').getContext('2d');
-            
-            chartInstance1 = new Chart(ctx1, JSON.parse(JSON.stringify(chartConfig)));
-            chartInstance2 = new Chart(ctx2, JSON.parse(JSON.stringify(chartConfig)));
+            chartInstance1 = new Chart(document.getElementById('liveChart').getContext('2d'), JSON.parse(JSON.stringify(chartConfig)));
+            chartInstance2 = new Chart(document.getElementById('analyticsChart').getContext('2d'), JSON.parse(JSON.stringify(chartConfig)));
         }
 
         function updateCharts(p1, p2) {
             const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            
             [chartInstance1, chartInstance2].forEach(chart => {
-                if (chart.data.labels.length > 15) { // Keep last 15 points
-                    chart.data.labels.shift();
-                    chart.data.datasets[0].data.shift();
+                if (chart.data.labels.length > 15) { 
+                    chart.data.labels.shift(); 
+                    chart.data.datasets[0].data.shift(); 
                     chart.data.datasets[1].data.shift();
                 }
-                chart.data.labels.push(now);
-                chart.data.datasets[0].data.push(p1);
+                chart.data.labels.push(now); 
+                chart.data.datasets[0].data.push(p1); 
                 chart.data.datasets[1].data.push(p2);
-                chart.update('none'); // Update without full animation for smoother live data
+                chart.update(); 
             });
         }
 
-        // 4. FETCH TELEMETRY FROM VERCEL
+        // 5. FETCH TELEMETRY FROM VERCEL
         async function fetchRealData() {
             try {
                 const response = await fetch('/api/telemetry');
                 if (!response.ok) throw new Error("Vercel error");
                 
                 const data = await response.json();
-                console.log("Telemetry Received:", data);
-
                 const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
 
-                // Extract Specific Keys based on your ESP32 Code
+                // Extract all values
                 const v = getVal('voltage');
                 const i1 = getVal('current1');
                 const i2 = getVal('current2');
@@ -302,11 +309,15 @@
                 const p2 = getVal('power2');
                 const eTotal = getVal('energy_total');
                 const cTotal = getVal('cost_total');
+                
+                // Read physical hardware states
+                load1State = (getVal('state1') === 1);
+                load2State = (getVal('state2') === 1);
 
                 const totalP = p1 + p2;
                 const totalI = i1 + i2;
 
-                // Update Main Metrics
+                // Update Overview Metrics
                 document.getElementById('voltage_full').innerText = v.toFixed(1);
                 document.getElementById('totalPower').innerText = (totalP / 1000).toFixed(2);
                 document.getElementById('energyToday').innerText = eTotal.toFixed(4);
@@ -317,15 +328,18 @@
                 document.getElementById('load2-split').innerText = (p2 / 1000).toFixed(2) + ' kW';
                 document.getElementById('load-total-split').innerText = (totalP / 1000).toFixed(2) + ' kW';
                 
-                // Update Load 1 Card
+                // Update Detailed Load Cards
                 document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
                 document.getElementById('r1-amps').innerText = i1.toFixed(2) + ' A';
                 document.getElementById('r1-power').innerText = (p1 / 1000).toFixed(2) + ' kW';
-
-                // Update Load 2 Card
+                
                 document.getElementById('r2-volts').innerText = v.toFixed(1) + ' V';
                 document.getElementById('r2-amps').innerText = i2.toFixed(2) + ' A';
                 document.getElementById('r2-power').innerText = (p2 / 1000).toFixed(2) + ' kW';
+
+                // Visually Sync Buttons with physical hardware
+                syncButtonUI(1, load1State);
+                syncButtonUI(2, load2State);
 
                 // Overall Power Factor Calculation
                 if (v > 0 && totalI > 0) {
@@ -334,7 +348,7 @@
                     document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
                 }
 
-                // Push data to graphs
+                // Push new data points to charts
                 updateCharts(p1, p2);
 
             } catch (error) {
@@ -342,24 +356,19 @@
             }
         }
 
-        // 5. SEND RELAY COMMANDS TO VERCEL
+        // 6. SEND RELAY COMMANDS TO VERCEL
         async function sendRpcCommand(loadNumber) {
             let newState;
-            const btn = document.getElementById('btn-load' + loadNumber);
-            const statusBadge = document.getElementById('status-load' + loadNumber);
-            const btnText = document.getElementById('btn-text-' + loadNumber);
-
-            if (loadNumber === 1) { load1State = !load1State; newState = load1State; } 
-            else { load2State = !load2State; newState = load2State; }
-
-            // UI Feedback
-            if (newState) {
-                btn.classList.remove('off'); btnText.innerText = "Turn OFF";
-                statusBadge.classList.remove('offline'); statusBadge.innerText = "● ONLINE";
-            } else {
-                btn.classList.add('off'); btnText.innerText = "Turn ON";
-                statusBadge.classList.add('offline'); statusBadge.innerText = "○ OFFLINE";
+            if (loadNumber === 1) { 
+                load1State = !load1State; 
+                newState = load1State; 
+            } else { 
+                load2State = !load2State; 
+                newState = load2State; 
             }
+
+            // Instantly update UI for a snappy user experience (Optimistic UI)
+            syncButtonUI(loadNumber, newState);
 
             try {
                 await fetch('/api/relay', {
@@ -372,15 +381,15 @@
             }
         }
 
-        // 6. INITIALIZE
-        function updateFooter() {
-            document.getElementById('footer-time').innerText = new Date().toLocaleString();
-        }
+        // 7. INITIALIZATION & TIMERS
+        function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
 
         initCharts();
         fetchRealData();
         updateFooter();
-        setInterval(fetchRealData, 10000); // Poll every 10 seconds
+        
+        // Poll for new hardware data every 5 seconds (Matches ESP32 publish rate)
+        setInterval(fetchRealData, 5000); 
         setInterval(updateFooter, 60000);
     </script>
 </body>

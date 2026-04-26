@@ -11,8 +11,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Missing Vercel Environment Variables.' });
     }
 
-    // 3. THE FIX: Ask ThingsBoard for all the new separated load keys!
-    const keys = "voltage,current1,current2,power1,power2,pf1,pf2,energy_total,cost_total";
+    // 3. Ask ThingsBoard for all the independent load keys + the physical button states!
+    const keys = "voltage,current1,current2,power1,power2,pf1,pf2,energy_total,cost_total,state1,state2";
     
     // Build the secure endpoint URL
     const url = `${TB_URL}/api/plugins/telemetry/DEVICE/${DEVICE_ID}/values/timeseries?keys=${keys}`;
