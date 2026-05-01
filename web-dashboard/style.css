@@ -117,6 +117,7 @@ nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); mar
 .toggle-btn.off:hover { background-color: rgba(139, 148, 158, 0.1); }
 .btn-indicator { height: 10px; width: 10px; border-radius: 50%; background-color: var(--green); }
 .toggle-btn.off .btn-indicator { background-color: var(--text-sub); }
+
 /* --- TAB 4: SETTINGS STYLES --- */
 .settings-group { display: flex; flex-direction: column; margin-bottom: 15px; }
 .settings-group label { font-size: 0.9em; color: var(--text-sub); margin-bottom: 5px; font-weight: 600; }

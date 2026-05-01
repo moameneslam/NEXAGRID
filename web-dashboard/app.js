@@ -11,14 +11,13 @@ function checkLogin() {
 
     if (user === VALID_USER && pass === VALID_PASS) {
         document.getElementById('login-overlay').classList.add('hidden');
-        startDashboard(); // Boot the system!
+        startDashboard();
     } else {
         errorDiv.innerText = "Invalid username or password.";
         document.getElementById('login-pass').value = ""; 
     }
 }
 
-// Allow pressing "Enter" to login
 document.getElementById('login-pass').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') checkLogin();
 });
@@ -32,54 +31,6 @@ let chartInstance1 = null;
 let chartInstance2 = null;
 let rpcCooldown = 0; 
 let lastValidDataTime = 0; 
-// ==========================================
-// NEW: SMART GRID ENGINE & SETTINGS
-// ==========================================
-let nexaSettings = { peakRate: 3.0, offPeakRate: 0.5, peakStart: "18:00", peakEnd: "22:00", smartMode: false };
-
-function loadSettings() {
-    const saved = localStorage.getItem('nexaSettings');
-    if (saved) {
-        nexaSettings = JSON.parse(saved);
-        document.getElementById('set-peak-price').value = nexaSettings.peakRate;
-        document.getElementById('set-offpeak-price').value = nexaSettings.offPeakRate;
-        document.getElementById('set-peak-start').value = nexaSettings.peakStart;
-        document.getElementById('set-peak-end').value = nexaSettings.peakEnd;
-        document.getElementById('set-smart-mode').checked = nexaSettings.smartMode;
-    }
-}
-
-function saveSettings() {
-    nexaSettings.peakRate = parseFloat(document.getElementById('set-peak-price').value);
-    nexaSettings.offPeakRate = parseFloat(document.getElementById('set-offpeak-price').value);
-    nexaSettings.peakStart = document.getElementById('set-peak-start').value;
-    nexaSettings.peakEnd = document.getElementById('set-peak-end').value;
-    nexaSettings.smartMode = document.getElementById('set-smart-mode').checked;
-    localStorage.setItem('nexaSettings', JSON.stringify(nexaSettings));
-    console.log("Settings Saved:", nexaSettings);
-}
-
-function checkSmartGrid() {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
-    const currentTime = currentHour + (currentMin / 60);
-
-    const startParts = nexaSettings.peakStart.split(':');
-    const endParts = nexaSettings.peakEnd.split(':');
-    const startTime = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
-    const endTime = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
-
-    let isPeak = false;
-    if (startTime <= endTime) { isPeak = (currentTime >= startTime && currentTime < endTime); } 
-    else { isPeak = (currentTime >= startTime || currentTime < endTime); } // Handles overnight peaks
-
-    // The Magic: Auto-Shift Load 2 OFF if we enter Peak hours and Smart Mode is ON!
-    if (isPeak && nexaSettings.smartMode && load2State === true) {
-        console.log("SMART GRID OVERRIDE: Turning off Load 2 to save peak costs.");
-        sendRpcCommand(2); // Sends command to turn it off
-    }
-}
 
 // ==========================================
 // 3. UI LOGIC: TAB SWITCHING
@@ -92,21 +43,24 @@ function switchTab(tabId) {
 }
 
 // ==========================================
-// 4. UI LOGIC: BUTTON SYNC ENGINE 
+// 4. UI LOGIC: BUTTON SYNC ENGINE (With Theft Override)
 // ==========================================
 function syncButtonUI(loadNumber, isOn, currentAmps = 0, isTheft = false) {
     const btn = document.getElementById('btn-load' + loadNumber);
     const statusBadge = document.getElementById('status-load' + loadNumber);
     const btnText = document.getElementById('btn-text-' + loadNumber);
 
-    // 🚨 Check for Theft/Bypass First!
+    // Reset inline styles just in case theft was resolved
+    statusBadge.style = ""; 
+
+    // 🚨 Theft / Bypass Overrides Normal Logic
     if (isTheft) {
         btn.classList.add('off'); btnText.innerText = "LOCKED";
         statusBadge.className = 'relay-status offline';
         statusBadge.style.backgroundColor = "rgba(231, 76, 60, 0.2)";
         statusBadge.style.color = "var(--red)";
         statusBadge.style.borderColor = "var(--red)";
-        statusBadge.innerText = "⚠️ THEFT/BYPASS DETECTED";
+        statusBadge.innerText = "⚠️ THEFT / BYPASS";
         return;
     }
 
@@ -163,7 +117,6 @@ function updateCharts(p1, p2) {
 // ==========================================
 async function fetchRealData() {
     try {
-        // 👉 THIS CALLS YOUR api/telemetry.js FILE
         const response = await fetch('/api/telemetry');
         if (!response.ok) throw new Error("Vercel API error");
         
@@ -180,10 +133,13 @@ async function fetchRealData() {
         const eTotal = getVal('energy_total');
         const cTotal = getVal('cost_total');
         
-        // Check for Theft Flags from ESP32
+        // Check for Theft Flags
         const theft1 = getVal('theft_l1') === 1;
         const theft2 = getVal('theft_l2') === 1;
         
+        // Software Trip Check
+        checkPowerLimits(p1, p2); 
+
         // Hardware State Two-Way Sync
         if (Date.now() > rpcCooldown) {
             const s1 = data['state1'] ? data['state1'][0].value.toString().toLowerCase() : null;
@@ -267,7 +223,6 @@ async function sendRpcCommand(loadNumber) {
     rpcCooldown = Date.now() + 8000; 
 
     try {
-        // 👉 THIS CALLS YOUR api/relay.js FILE
         const res = await fetch('/api/relay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -288,15 +243,93 @@ async function sendRpcCommand(loadNumber) {
 }
 
 function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
-//========================================
-// 9. DASHBOARD BOOTSTRAP 
-//========================================
+
+
+// ==========================================
+// 9. SMART GRID ENGINE & SETTINGS
+// ==========================================
+// 🔒 UTILITY PROVIDER DATA (LOCKED)
+const UTILITY_CONFIG = {
+    peakRate: 3.0,
+    offPeakRate: 0.5,
+    peakStartHour: 18.0, 
+    peakEndHour: 22.0    
+};
+
+// USER PREFERENCES (Includes Load limits and Essential toggles)
+let nexaSettings = { 
+    smartMode: false,
+    l1Max: 3500, l1Essential: true,  
+    l2Max: 3500, l2Essential: false  
+};
+
+function loadSettings() {
+    const saved = localStorage.getItem('nexaSettings');
+    if (saved) {
+        nexaSettings = JSON.parse(saved);
+        document.getElementById('set-smart-mode').checked = nexaSettings.smartMode;
+        
+        // Load Relay Configs
+        document.getElementById('set-l1-max').value = nexaSettings.l1Max || 3500;
+        document.getElementById('set-l1-essential').checked = nexaSettings.l1Essential ?? true;
+        document.getElementById('set-l2-max').value = nexaSettings.l2Max || 3500;
+        document.getElementById('set-l2-essential').checked = nexaSettings.l2Essential ?? false;
+    }
+}
+
+function saveSettings() {
+    nexaSettings.smartMode = document.getElementById('set-smart-mode').checked;
+    
+    // Save Relay Configs
+    nexaSettings.l1Max = parseFloat(document.getElementById('set-l1-max').value);
+    nexaSettings.l1Essential = document.getElementById('set-l1-essential').checked;
+    nexaSettings.l2Max = parseFloat(document.getElementById('set-l2-max').value);
+    nexaSettings.l2Essential = document.getElementById('set-l2-essential').checked;
+    
+    localStorage.setItem('nexaSettings', JSON.stringify(nexaSettings));
+    console.log("User Settings Saved:", nexaSettings);
+}
+
+function checkSmartGrid() {
+    const now = new Date();
+    const currentTime = now.getHours() + (now.getMinutes() / 60);
+    const isPeak = (currentTime >= UTILITY_CONFIG.peakStartHour && currentTime < UTILITY_CONFIG.peakEndHour);
+
+    if (isPeak && nexaSettings.smartMode) {
+        // ONLY turn off Load 1 if it is NOT marked as essential
+        if (!nexaSettings.l1Essential && load1State === true) {
+            console.log("SMART GRID: Shifting Load 1 OFF to save costs.");
+            sendRpcCommand(1); 
+        }
+        // ONLY turn off Load 2 if it is NOT marked as essential
+        if (!nexaSettings.l2Essential && load2State === true) {
+            console.log("SMART GRID: Shifting Load 2 OFF to save costs.");
+            sendRpcCommand(2); 
+        }
+    }
+}
+
+// Software Power Limit Trip (Called during fetchRealData)
+function checkPowerLimits(p1, p2) {
+    if (load1State && p1 > nexaSettings.l1Max) {
+        console.warn(`Load 1 exceeded max power! (${p1}W > ${nexaSettings.l1Max}W). Tripping relay.`);
+        sendRpcCommand(1); // Force relay off
+    }
+    if (load2State && p2 > nexaSettings.l2Max) {
+        console.warn(`Load 2 exceeded max power! (${p2}W > ${nexaSettings.l2Max}W). Tripping relay.`);
+        sendRpcCommand(2); // Force relay off
+    }
+}
+
+// ==========================================
+// 10. DASHBOARD BOOTSTRAP 
+// ==========================================
 function startDashboard() {
-    loadSettings(); // NEW: Load settings on boot
+    loadSettings();
     initCharts();
     fetchRealData();
     updateFooter();
     setInterval(fetchRealData, 5000); 
-    setInterval(checkSmartGrid, 30000); // NEW: Check peak hours every 30 seconds
+    setInterval(checkSmartGrid, 30000); 
     setInterval(updateFooter, 60000);
 }
