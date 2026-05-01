@@ -32,6 +32,54 @@ let chartInstance1 = null;
 let chartInstance2 = null;
 let rpcCooldown = 0; 
 let lastValidDataTime = 0; 
+// ==========================================
+// NEW: SMART GRID ENGINE & SETTINGS
+// ==========================================
+let nexaSettings = { peakRate: 3.0, offPeakRate: 0.5, peakStart: "18:00", peakEnd: "22:00", smartMode: false };
+
+function loadSettings() {
+    const saved = localStorage.getItem('nexaSettings');
+    if (saved) {
+        nexaSettings = JSON.parse(saved);
+        document.getElementById('set-peak-price').value = nexaSettings.peakRate;
+        document.getElementById('set-offpeak-price').value = nexaSettings.offPeakRate;
+        document.getElementById('set-peak-start').value = nexaSettings.peakStart;
+        document.getElementById('set-peak-end').value = nexaSettings.peakEnd;
+        document.getElementById('set-smart-mode').checked = nexaSettings.smartMode;
+    }
+}
+
+function saveSettings() {
+    nexaSettings.peakRate = parseFloat(document.getElementById('set-peak-price').value);
+    nexaSettings.offPeakRate = parseFloat(document.getElementById('set-offpeak-price').value);
+    nexaSettings.peakStart = document.getElementById('set-peak-start').value;
+    nexaSettings.peakEnd = document.getElementById('set-peak-end').value;
+    nexaSettings.smartMode = document.getElementById('set-smart-mode').checked;
+    localStorage.setItem('nexaSettings', JSON.stringify(nexaSettings));
+    console.log("Settings Saved:", nexaSettings);
+}
+
+function checkSmartGrid() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const currentTime = currentHour + (currentMin / 60);
+
+    const startParts = nexaSettings.peakStart.split(':');
+    const endParts = nexaSettings.peakEnd.split(':');
+    const startTime = parseInt(startParts[0]) + (parseInt(startParts[1]) / 60);
+    const endTime = parseInt(endParts[0]) + (parseInt(endParts[1]) / 60);
+
+    let isPeak = false;
+    if (startTime <= endTime) { isPeak = (currentTime >= startTime && currentTime < endTime); } 
+    else { isPeak = (currentTime >= startTime || currentTime < endTime); } // Handles overnight peaks
+
+    // The Magic: Auto-Shift Load 2 OFF if we enter Peak hours and Smart Mode is ON!
+    if (isPeak && nexaSettings.smartMode && load2State === true) {
+        console.log("SMART GRID OVERRIDE: Turning off Load 2 to save peak costs.");
+        sendRpcCommand(2); // Sends command to turn it off
+    }
+}
 
 // ==========================================
 // 3. UI LOGIC: TAB SWITCHING
@@ -240,14 +288,15 @@ async function sendRpcCommand(loadNumber) {
 }
 
 function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
-
-// ==========================================
+//========================================
 // 9. DASHBOARD BOOTSTRAP 
-// ==========================================
+//========================================
 function startDashboard() {
+    loadSettings(); // NEW: Load settings on boot
     initCharts();
     fetchRealData();
     updateFooter();
     setInterval(fetchRealData, 5000); 
+    setInterval(checkSmartGrid, 30000); // NEW: Check peak hours every 30 seconds
     setInterval(updateFooter, 60000);
 }

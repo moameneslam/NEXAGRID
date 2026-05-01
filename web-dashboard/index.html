@@ -40,6 +40,7 @@
                 <button class="tab-btn active" onclick="switchTab('tab-overview')">Overview</button>
                 <button class="tab-btn" onclick="switchTab('tab-loads')">Loads</button>
                 <button class="tab-btn" onclick="switchTab('tab-analytics')">Analytics</button>
+                <button class="tab-btn" onclick="switchTab('tab-settings')">Settings</button>
             </nav>
         </div>
         <div class="connection-status" id="main-conn-status">
@@ -109,6 +110,55 @@
             <h2>Historical Power Analytics</h2>
             <div class="sub-text" style="margin-bottom: 20px;">Tracking Load 1 and Load 2 active power consumption over time.</div>
             <div class="graph-container" style="height: 400px;"><canvas id="analyticsChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- NEW SETTINGS TAB -->
+    <div id="tab-settings" class="tab-content">
+        <div class="loads-grid">
+            <!-- Tariff Settings -->
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--teal);"></div>
+                <h2>Tariff Configuration</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">Set your local utility pricing tiers.</div>
+                
+                <div class="settings-group">
+                    <label>Peak Price (EGP/kWh)</label>
+                    <input type="number" id="set-peak-price" class="settings-input" step="0.1" value="3.0" onchange="saveSettings()">
+                </div>
+                <div class="settings-group">
+                    <label>Off-Peak Price (EGP/kWh)</label>
+                    <input type="number" id="set-offpeak-price" class="settings-input" step="0.1" value="0.5" onchange="saveSettings()">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--orange);"></div>
+                <h2>Smart Grid & Auto-Shift</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">Configure automatic peak load management.</div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <div class="settings-group" style="flex: 1;">
+                        <label>Peak Start Time</label>
+                        <input type="time" id="set-peak-start" class="settings-input" value="18:00" onchange="saveSettings()">
+                    </div>
+                    <div class="settings-group" style="flex: 1;">
+                        <label>Peak End Time</label>
+                        <input type="time" id="set-peak-end" class="settings-input" value="22:00" onchange="saveSettings()">
+                    </div>
+                </div>
+
+                <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 600;">Enable Auto-Shift</div>
+                        <div class="sub-text">Automatically forces Load 2 OFF during peak hours.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="set-smart-mode" onchange="saveSettings()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
