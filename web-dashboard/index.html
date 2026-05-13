@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexa Grid Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Corrected to singular style.css based on your project files -->
     <link rel="stylesheet" href="style.css">
     <script src="app.js" defer></script>
 </head>
 <body>
 
-    <!-- SECURITY GATEWAY OVERLAY -->
     <div id="login-overlay">
         <div class="login-box">
             <div class="logo" style="justify-content: center; margin-bottom: 5px;">
@@ -27,7 +25,6 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD CONTENT -->
     <header>
         <div class="header-left">
             <div class="logo"><div class="logo-icon"></div> NexaGrid</div>
@@ -69,7 +66,7 @@
             <div class="card" id="card-load1">
                 <div class="accent-bar" style="background-color: var(--teal);"></div>
                 <div class="relay-header">
-                    <div><h2>Load 1</h2><div class="sub-text">Circuit 1 • 220V AC</div></div>
+                    <div><h2>Load 1 <span id="ui-ess-1" style="color: var(--gold); display: none;">★</span></h2><div class="sub-text">Circuit 1 • 220V AC</div></div>
                     <div class="relay-status offline" id="status-load1">○ OFFLINE</div>
                 </div>
                 <div class="relay-data">
@@ -85,7 +82,7 @@
             <div class="card" id="card-load2">
                 <div class="accent-bar" style="background-color: var(--gold);"></div>
                 <div class="relay-header">
-                    <div><h2>Load 2</h2><div class="sub-text">Circuit 2 • 220V AC</div></div>
+                    <div><h2>Load 2 <span id="ui-ess-2" style="color: var(--gold); display: none;">★</span></h2><div class="sub-text">Circuit 2 • 220V AC</div></div>
                     <div class="relay-status offline" id="status-load2">○ OFFLINE</div>
                 </div>
                 <div class="relay-data">
@@ -108,11 +105,57 @@
         </div>
     </div>
 
-    <!-- SETTINGS TAB (Locked Tariffs + Load Limits) -->
     <div id="tab-settings" class="tab-content">
         <div class="loads-grid">
-            <!-- Tariff Settings (LOCKED) -->
-            <div class="card">
+            
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="accent-bar" style="background-color: var(--orange);"></div>
+                <h2>Hardware Load Shedding</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">These settings sync directly to the ESP32 flash memory. The panel will automatically trip non-essential loads if the Global Current Limit is exceeded.</div>
+
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                    <div class="settings-group">
+                        <label>Global Current Limit (Amps)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="set-global-limit" class="settings-input" style="width: 150px;" value="20.0" step="0.5">
+                            <button class="login-btn" style="margin-top: 0; width: 120px; padding: 10px;" onclick="saveHardwareSettings()">Sync to Panel</button>
+                        </div>
+                        <div class="sub-text" style="margin-top: 5px;">Maximum total Amps allowed before the ESP32 initiates load shedding.</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h3 style="color: var(--teal); margin-bottom: 15px;">Load 1</h3>
+                        <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Essential Status</div>
+                                <div class="sub-text">Protect this load from auto-tripping.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="set-l1-essential" onchange="saveHardwareSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h3 style="color: var(--gold); margin-bottom: 15px;">Load 2</h3>
+                        <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Essential Status</div>
+                                <div class="sub-text">Protect this load from auto-tripping.</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="set-l2-essential" onchange="saveHardwareSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
                 <div class="accent-bar" style="background-color: var(--teal);"></div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <h2>Utility Provider Tariffs</h2>
@@ -122,90 +165,19 @@
 
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
-                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Peak Rate</label>
-                        <div style="font-size: 2em; font-weight: bold; color: var(--red); margin: 5px 0;">3.0 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
-                        <div class="sub-text">18:00 - 22:00</div>
-                    </div>
-                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
-                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Off-Peak Rate</label>
-                        <div style="font-size: 2em; font-weight: bold; color: var(--green); margin: 5px 0;">0.5 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
-                        <div class="sub-text">All other times</div>
+                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Standard Rate</label>
+                        <div style="font-size: 2em; font-weight: bold; color: var(--teal); margin: 5px 0;">1.5 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
+                        <div class="sub-text">Flat Rate Applied</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Smart Grid Settings (EDITABLE) -->
-            <div class="card">
-                <div class="accent-bar" style="background-color: var(--orange);"></div>
-                <h2>Smart Grid Auto-Shift</h2>
-                <div class="sub-text" style="margin-bottom: 20px;">Allow NexaGrid to manage your heavy loads automatically.</div>
-
-                <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; padding-top: 10px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 1.1em;">Enable Auto-Shift</div>
-                        <div class="sub-text" style="margin-top: 5px;">Automatically forces non-essential loads OFF during peak hours (18:00 - 22:00).</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="set-smart-mode" onchange="saveSettings()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Individual Relay Configuration -->
-            <div class="card" style="grid-column: 1 / -1;">
-                <div class="accent-bar" style="background-color: var(--text-main);"></div>
-                <h2>Relay Configuration</h2>
-                <div class="sub-text" style="margin-bottom: 20px;">Set hardware limits and essential status for each circuit.</div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <!-- Load 1 Settings -->
-                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="color: var(--teal); margin-bottom: 15px;">Load 1 Profile</h3>
-                        <div class="settings-group">
-                            <label>Max Power Limit (Watts)</label>
-                            <input type="number" id="set-l1-max" class="settings-input" value="3500" onchange="saveSettings()">
-                            <div class="sub-text" style="margin-top: 5px;">Safely trips relay if exceeded.</div>
-                        </div>
-                        <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                            <div>
-                                <div style="font-weight: 600;">Essential Load</div>
-                                <div class="sub-text">Ignores auto-shifting (e.g., Fridge)</div>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="set-l1-essential" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Load 2 Settings -->
-                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="color: var(--gold); margin-bottom: 15px;">Load 2 Profile</h3>
-                        <div class="settings-group">
-                            <label>Max Power Limit (Watts)</label>
-                            <input type="number" id="set-l2-max" class="settings-input" value="3500" onchange="saveSettings()">
-                            <div class="sub-text" style="margin-top: 5px;">Safely trips relay if exceeded.</div>
-                        </div>
-                        <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                            <div>
-                                <div style="font-weight: 600;">Essential Load</div>
-                                <div class="sub-text">Ignores auto-shifting (e.g., Water Heater)</div>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="set-l2-essential" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
     <footer>
         <div id="footer-time"></div>
-        <div>Nexa Grid • Serverless Direct Bridge</div>
+        <div>Nexa Grid • Edge Load Shedding Engine</div>
     </footer>
 
 </body>

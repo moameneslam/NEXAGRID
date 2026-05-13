@@ -50,8 +50,7 @@ function syncButtonUI(loadNumber, isOn, currentAmps = 0, isTheft = false) {
     const statusBadge = document.getElementById('status-load' + loadNumber);
     const btnText = document.getElementById('btn-text-' + loadNumber);
 
-    // Reset inline styles just in case theft was resolved
-    statusBadge.style = ""; 
+    statusBadge.style = ""; // Reset inline styles
 
     // 🚨 Theft / Bypass Overrides Normal Logic
     if (isTheft) {
@@ -133,12 +132,8 @@ async function fetchRealData() {
         const eTotal = getVal('energy_total');
         const cTotal = getVal('cost_total');
         
-        // Check for Theft Flags
         const theft1 = getVal('theft_l1') === 1;
         const theft2 = getVal('theft_l2') === 1;
-        
-        // Software Trip Check
-        checkPowerLimits(p1, p2); 
 
         // Hardware State Two-Way Sync
         if (Date.now() > rpcCooldown) {
@@ -190,9 +185,6 @@ async function fetchRealData() {
     updateConnectionStatus();
 }
 
-// ==========================================
-// 7. DYNAMIC CONNECTION STATUS CHECK
-// ==========================================
 function updateConnectionStatus() {
     const statusText = document.getElementById('main-conn-text');
     const statusDot = document.getElementById('main-conn-dot');
@@ -212,7 +204,7 @@ function updateConnectionStatus() {
 }
 
 // ==========================================
-// 8. THE POST API (SEND RELAY COMMANDS)
+// 7. THE POST API (SEND RELAY COMMANDS)
 // ==========================================
 async function sendRpcCommand(loadNumber) {
     let newState;
@@ -229,107 +221,85 @@ async function sendRpcCommand(loadNumber) {
             body: JSON.stringify({ loadNumber, state: newState })
         });
 
-        if (!res.ok) {
-            const errData = await res.json();
-            alert("⚠️ Command Failed!\nReason: " + (errData.error || "Unknown Error"));
-            if (loadNumber === 1) { load1State = !newState; syncButtonUI(1, load1State); } 
-            else { load2State = !newState; syncButtonUI(2, load2State); }
-        }
+        if (!res.ok) throw new Error("API Rejected Command");
 
     } catch (error) {
         console.error("Relay Command failed:", error);
         alert("⚠️ Network error. Could not reach Vercel.");
+        // Revert UI if it failed
+        if (loadNumber === 1) { load1State = !newState; syncButtonUI(1, load1State); } 
+        else { load2State = !newState; syncButtonUI(2, load2State); }
     }
 }
 
+// ==========================================
+// 8. HARDWARE SETTINGS ENGINE (ATTRIBUTES)
+// ==========================================
+
+// Pull the latest settings from the Cloud when the page loads
+async function fetchHardwareSettings() {
+    try {
+        const response = await fetch('/api/attributes');
+        if (!response.ok) return; // Silent fail on initial load
+        
+        const data = await response.json();
+        
+        // Update input boxes
+        if (data.globalCurrentLimit !== undefined) document.getElementById('set-global-limit').value = data.globalCurrentLimit;
+        if (data.isLoad1Essential !== undefined) document.getElementById('set-l1-essential').checked = data.isLoad1Essential;
+        if (data.isLoad2Essential !== undefined) document.getElementById('set-l2-essential').checked = data.isLoad2Essential;
+
+        // Update the UI "Stars" next to the load names
+        document.getElementById('ui-ess-1').style.display = document.getElementById('set-l1-essential').checked ? 'inline' : 'none';
+        document.getElementById('ui-ess-2').style.display = document.getElementById('set-l2-essential').checked ? 'inline' : 'none';
+
+    } catch (error) {
+        console.error("Failed to fetch settings from cloud", error);
+    }
+}
+
+// Push new settings to the Cloud & ESP32 Flash Memory
+async function saveHardwareSettings() {
+    const limit = parseFloat(document.getElementById('set-global-limit').value);
+    const ess1 = document.getElementById('set-l1-essential').checked;
+    const ess2 = document.getElementById('set-l2-essential').checked;
+
+    try {
+        const res = await fetch('/api/attributes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                globalCurrentLimit: limit,
+                isLoad1Essential: ess1,
+                isLoad2Essential: ess2
+            })
+        });
+
+        if (!res.ok) throw new Error("Sync Failed");
+
+        alert("✅ Hardware Settings successfully synced to ESP32 Flash Memory!");
+        
+        // Instantly update the UI stars
+        document.getElementById('ui-ess-1').style.display = ess1 ? 'inline' : 'none';
+        document.getElementById('ui-ess-2').style.display = ess2 ? 'inline' : 'none';
+
+    } catch (error) {
+        console.error("Failed to sync settings:", error);
+        alert("⚠️ Network error. Could not sync to the panel.");
+    }
+}
+
+// ==========================================
+// 9. DASHBOARD BOOTSTRAP 
+// ==========================================
 function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
 
-
-// ==========================================
-// 9. SMART GRID ENGINE & SETTINGS
-// ==========================================
-// 🔒 UTILITY PROVIDER DATA (LOCKED)
-const UTILITY_CONFIG = {
-    peakRate: 3.0,
-    offPeakRate: 0.5,
-    peakStartHour: 18.0, 
-    peakEndHour: 22.0    
-};
-
-// USER PREFERENCES (Includes Load limits and Essential toggles)
-let nexaSettings = { 
-    smartMode: false,
-    l1Max: 3500, l1Essential: true,  
-    l2Max: 3500, l2Essential: false  
-};
-
-function loadSettings() {
-    const saved = localStorage.getItem('nexaSettings');
-    if (saved) {
-        nexaSettings = JSON.parse(saved);
-        document.getElementById('set-smart-mode').checked = nexaSettings.smartMode;
-        
-        // Load Relay Configs
-        document.getElementById('set-l1-max').value = nexaSettings.l1Max || 3500;
-        document.getElementById('set-l1-essential').checked = nexaSettings.l1Essential ?? true;
-        document.getElementById('set-l2-max').value = nexaSettings.l2Max || 3500;
-        document.getElementById('set-l2-essential').checked = nexaSettings.l2Essential ?? false;
-    }
-}
-
-function saveSettings() {
-    nexaSettings.smartMode = document.getElementById('set-smart-mode').checked;
-    
-    // Save Relay Configs
-    nexaSettings.l1Max = parseFloat(document.getElementById('set-l1-max').value);
-    nexaSettings.l1Essential = document.getElementById('set-l1-essential').checked;
-    nexaSettings.l2Max = parseFloat(document.getElementById('set-l2-max').value);
-    nexaSettings.l2Essential = document.getElementById('set-l2-essential').checked;
-    
-    localStorage.setItem('nexaSettings', JSON.stringify(nexaSettings));
-    console.log("User Settings Saved:", nexaSettings);
-}
-
-function checkSmartGrid() {
-    const now = new Date();
-    const currentTime = now.getHours() + (now.getMinutes() / 60);
-    const isPeak = (currentTime >= UTILITY_CONFIG.peakStartHour && currentTime < UTILITY_CONFIG.peakEndHour);
-
-    if (isPeak && nexaSettings.smartMode) {
-        // ONLY turn off Load 1 if it is NOT marked as essential
-        if (!nexaSettings.l1Essential && load1State === true) {
-            console.log("SMART GRID: Shifting Load 1 OFF to save costs.");
-            sendRpcCommand(1); 
-        }
-        // ONLY turn off Load 2 if it is NOT marked as essential
-        if (!nexaSettings.l2Essential && load2State === true) {
-            console.log("SMART GRID: Shifting Load 2 OFF to save costs.");
-            sendRpcCommand(2); 
-        }
-    }
-}
-
-// Software Power Limit Trip (Called during fetchRealData)
-function checkPowerLimits(p1, p2) {
-    if (load1State && p1 > nexaSettings.l1Max) {
-        console.warn(`Load 1 exceeded max power! (${p1}W > ${nexaSettings.l1Max}W). Tripping relay.`);
-        sendRpcCommand(1); // Force relay off
-    }
-    if (load2State && p2 > nexaSettings.l2Max) {
-        console.warn(`Load 2 exceeded max power! (${p2}W > ${nexaSettings.l2Max}W). Tripping relay.`);
-        sendRpcCommand(2); // Force relay off
-    }
-}
-
-// ==========================================
-// 10. DASHBOARD BOOTSTRAP 
-// ==========================================
 function startDashboard() {
-    loadSettings();
     initCharts();
     fetchRealData();
+    fetchHardwareSettings(); // New! Get the saved limits from the cloud
     updateFooter();
+    
     setInterval(fetchRealData, 5000); 
-    setInterval(checkSmartGrid, 30000); 
     setInterval(updateFooter, 60000);
 }
