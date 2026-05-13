@@ -290,16 +290,60 @@ async function saveHardwareSettings() {
 }
 
 // ==========================================
-// 9. DASHBOARD BOOTSTRAP 
+// 9. ECONOMIC SMART GRID ENGINE
+// ==========================================
+const UTILITY_CONFIG = { peakStartHour: 18.0, peakEndHour: 22.0 };
+let isSmartModeEnabled = false;
+
+function saveEconomicSettings() {
+    isSmartModeEnabled = document.getElementById('set-smart-mode').checked;
+    localStorage.setItem('nexaEconomic', isSmartModeEnabled);
+}
+
+function loadEconomicSettings() {
+    const saved = localStorage.getItem('nexaEconomic');
+    if (saved !== null) {
+        isSmartModeEnabled = (saved === 'true');
+        document.getElementById('set-smart-mode').checked = isSmartModeEnabled;
+    }
+}
+
+function checkSmartGrid() {
+    if (!isSmartModeEnabled) return;
+
+    const now = new Date();
+    const currentTime = now.getHours() + (now.getMinutes() / 60);
+    const isPeak = (currentTime >= UTILITY_CONFIG.peakStartHour && currentTime < UTILITY_CONFIG.peakEndHour);
+
+    if (isPeak) {
+        // Read the essential status directly from the checkboxes
+        const l1Essential = document.getElementById('set-l1-essential').checked;
+        const l2Essential = document.getElementById('set-l2-essential').checked;
+
+        if (!l1Essential && load1State === true) {
+            console.log("ECONOMIC SHIFT: Turning OFF Load 1 during Peak Hours.");
+            sendRpcCommand(1); 
+        }
+        if (!l2Essential && load2State === true) {
+            console.log("ECONOMIC SHIFT: Turning OFF Load 2 during Peak Hours.");
+            sendRpcCommand(2); 
+        }
+    }
+}
+
+// ==========================================
+// 10. DASHBOARD BOOTSTRAP 
 // ==========================================
 function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
 
 function startDashboard() {
     initCharts();
     fetchRealData();
-    fetchHardwareSettings(); // New! Get the saved limits from the cloud
+    fetchHardwareSettings(); 
+    loadEconomicSettings();
     updateFooter();
     
     setInterval(fetchRealData, 5000); 
+    setInterval(checkSmartGrid, 30000); // Check economic shift every 30 seconds
     setInterval(updateFooter, 60000);
 }

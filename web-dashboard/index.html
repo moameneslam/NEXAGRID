@@ -109,9 +109,26 @@
         <div class="loads-grid">
             
             <div class="card" style="grid-column: 1 / -1;">
+                <div class="accent-bar" style="background-color: var(--gold);"></div>
+                <h2>Economic Auto-Shift</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">Automatically turn off non-essential loads during expensive Peak Hours to save money.</div>
+                
+                <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1em;">Enable Peak Shifting</div>
+                        <div class="sub-text" style="margin-top: 5px;">Forces non-essential loads OFF from 18:00 to 22:00 daily.</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="set-smart-mode" onchange="saveEconomicSettings()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
                 <div class="accent-bar" style="background-color: var(--orange);"></div>
-                <h2>Hardware Load Shedding</h2>
-                <div class="sub-text" style="margin-bottom: 20px;">These settings sync directly to the ESP32 flash memory. The panel will automatically trip non-essential loads if the Global Current Limit is exceeded.</div>
+                <h2>Hardware Load Shedding (Safety)</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">These limits sync directly to the ESP32. The panel will instantly trip non-essential loads if this physical Amp limit is exceeded.</div>
 
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
                     <div class="settings-group">
@@ -130,7 +147,7 @@
                         <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
                             <div>
                                 <div style="font-weight: 600;">Essential Status</div>
-                                <div class="sub-text">Protect this load from auto-tripping.</div>
+                                <div class="sub-text">Protect load from auto-tripping.</div>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="set-l1-essential" onchange="saveHardwareSettings()">
@@ -144,7 +161,7 @@
                         <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
                             <div>
                                 <div style="font-weight: 600;">Essential Status</div>
-                                <div class="sub-text">Protect this load from auto-tripping.</div>
+                                <div class="sub-text">Protect load from auto-tripping.</div>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="set-l2-essential" onchange="saveHardwareSettings()">
@@ -165,9 +182,14 @@
 
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
-                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Standard Rate</label>
-                        <div style="font-size: 2em; font-weight: bold; color: var(--teal); margin: 5px 0;">1.5 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
-                        <div class="sub-text">Flat Rate Applied</div>
+                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Peak Rate</label>
+                        <div style="font-size: 2em; font-weight: bold; color: var(--red); margin: 5px 0;">3.0 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
+                        <div class="sub-text">18:00 - 22:00</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
+                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Off-Peak Rate</label>
+                        <div style="font-size: 2em; font-weight: bold; color: var(--green); margin: 5px 0;">0.5 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
+                        <div class="sub-text">All other times</div>
                     </div>
                 </div>
             </div>
