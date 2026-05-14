@@ -183,7 +183,7 @@ async function fetchRealData() {
         document.getElementById('overview-credit').innerText = fmtCredit;
         document.getElementById('billing-credit').innerText = fmtCredit;
         
-        document.getElementById('voltage_full').innerText = v.toFixed(1);
+        //document.getElementById('voltage_full').innerText = v.toFixed(1);
         document.getElementById('totalPower').innerText = ((p1 + p2) / 1000).toFixed(2);
         document.getElementById('energyToday').innerText = eTotal.toFixed(4);
         document.getElementById('totalCost').innerText = currentEspCost.toFixed(2);
