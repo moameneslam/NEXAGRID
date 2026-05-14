@@ -32,6 +32,11 @@ let chartInstance2 = null;
 let rpcCooldown = 0; 
 let lastValidDataTime = 0; 
 
+// --- Web-Side Credit State ---
+let creditBalance = parseFloat(localStorage.getItem('nexaWebCredit')) || 0.0;
+let lastCalculationTime = Date.now();
+let sessionEnergy = 0.0;
+
 // ==========================================
 // 3. UI LOGIC: TAB SWITCHING
 // ==========================================
@@ -43,27 +48,24 @@ function switchTab(tabId) {
 }
 
 // ==========================================
-// 4. UI LOGIC: BUTTON SYNC ENGINE (With Theft Override)
+// 4. UI LOGIC: BUTTON SYNC ENGINE
 // ==========================================
 function syncButtonUI(loadNumber, isOn, currentAmps = 0, isTheft = false) {
     const btn = document.getElementById('btn-load' + loadNumber);
     const statusBadge = document.getElementById('status-load' + loadNumber);
     const btnText = document.getElementById('btn-text-' + loadNumber);
 
-    statusBadge.style = ""; // Reset inline styles
+    if (!btn || !statusBadge) return;
 
-    // 🚨 Theft / Bypass Overrides Normal Logic
+    statusBadge.style = ""; 
+
     if (isTheft) {
         btn.classList.add('off'); btnText.innerText = "LOCKED";
         statusBadge.className = 'relay-status offline';
-        statusBadge.style.backgroundColor = "rgba(231, 76, 60, 0.2)";
-        statusBadge.style.color = "var(--red)";
-        statusBadge.style.borderColor = "var(--red)";
         statusBadge.innerText = "⚠️ THEFT / BYPASS";
         return;
     }
 
-    // Normal Operations
     if (isOn) {
         btn.classList.remove('off'); btnText.innerText = "Turn OFF";
         if (currentAmps >= 3.5) {
@@ -103,16 +105,17 @@ function initCharts() {
 }
 
 function updateCharts(p1, p2) {
-    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+    const nowStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
     [chartInstance1, chartInstance2].forEach(chart => {
+        if (!chart) return;
         if (chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); chart.data.datasets[1].data.shift(); }
-        chart.data.labels.push(now); chart.data.datasets[0].data.push(p1); chart.data.datasets[1].data.push(p2);
+        chart.data.labels.push(nowStr); chart.data.datasets[0].data.push(p1); chart.data.datasets[1].data.push(p2);
         chart.update(); 
     });
 }
 
 // ==========================================
-// 6. THE GET API (FETCH TELEMETRY)
+// 6. THE CREDIT & TELEMETRY ENGINE
 // ==========================================
 async function fetchRealData() {
     try {
@@ -120,22 +123,46 @@ async function fetchRealData() {
         if (!response.ok) throw new Error("Vercel API error");
         
         const data = await response.json();
-        lastValidDataTime = Date.now(); 
+        const currentTime = Date.now();
+        lastValidDataTime = currentTime; 
+
+        // Time tracking for credit deduction (in hours)
+        const timeDiffHours = (currentTime - lastCalculationTime) / 3600000.0;
+        lastCalculationTime = currentTime;
 
         const getVal = (key) => (data[key] && data[key][0]) ? parseFloat(data[key][0].value) : 0;
 
         const v = getVal('voltage');
         const i1 = getVal('current1');
         const i2 = getVal('current2');
-        const p1 = getVal('power1');
-        const p2 = getVal('power2');
-        const eTotal = getVal('energy_total');
-        const cTotal = getVal('cost_total');
+        const p1 = getVal('power1') || (v * i1);
+        const p2 = getVal('power2') || (v * i2);
         
         const theft1 = getVal('theft_l1') === 1;
         const theft2 = getVal('theft_l2') === 1;
 
-        // Hardware State Two-Way Sync
+        // --- Web-Side Credit Calculation ---
+        const totalWatts = p1 + p2;
+        const energyUsedStep = (totalWatts / 1000.0) * timeDiffHours;
+        sessionEnergy += energyUsedStep;
+
+        const hour = new Date().getHours();
+        const rate = (hour >= 18 && hour < 22) ? 3.0 : 0.5; // EGP/kWh (Peak vs Off-peak)
+        
+        if (creditBalance > 0) {
+            creditBalance -= (energyUsedStep * rate);
+            if (creditBalance < 0) creditBalance = 0;
+            localStorage.setItem('nexaWebCredit', creditBalance.toFixed(6));
+        }
+
+        // --- Auto-Cutoff Logic (No ESP32 edit needed) ---
+        if (creditBalance <= 0 && (load1State || load2State)) {
+            console.warn("Credit expired. Auto-shutting loads.");
+            if (load1State) sendRpcCommand(1); 
+            if (load2State) sendRpcCommand(2);
+        }
+
+        // Hardware State Sync
         if (Date.now() > rpcCooldown) {
             const s1 = data['state1'] ? data['state1'][0].value.toString().toLowerCase() : null;
             const s2 = data['state2'] ? data['state2'][0].value.toString().toLowerCase() : null;
@@ -150,17 +177,18 @@ async function fetchRealData() {
             }
         }
 
-        const totalP = p1 + p2;
-        const totalI = i1 + i2;
-
+        // Update UI Elements
+        const formattedCredit = creditBalance.toFixed(2);
+        document.getElementById('overview-credit').innerText = formattedCredit;
+        document.getElementById('billing-credit').innerText = formattedCredit;
+        
         document.getElementById('voltage_full').innerText = v.toFixed(1);
-        document.getElementById('totalPower').innerText = (totalP / 1000).toFixed(2);
-        document.getElementById('energyToday').innerText = eTotal.toFixed(4);
-        document.getElementById('totalCost').innerText = cTotal.toFixed(3);
+        document.getElementById('totalPower').innerText = ((p1 + p2) / 1000).toFixed(2);
+        document.getElementById('energyToday').innerText = sessionEnergy.toFixed(4);
+        document.getElementById('totalCost').innerText = (sessionEnergy * rate).toFixed(2);
 
         document.getElementById('load1-split').innerText = (p1 / 1000).toFixed(2) + ' kW';
         document.getElementById('load2-split').innerText = (p2 / 1000).toFixed(2) + ' kW';
-        document.getElementById('load-total-split').innerText = (totalP / 1000).toFixed(2) + ' kW';
         
         document.getElementById('r1-volts').innerText = v.toFixed(1) + ' V';
         document.getElementById('r1-amps').innerText = i1.toFixed(2) + ' A';
@@ -170,41 +198,16 @@ async function fetchRealData() {
         document.getElementById('r2-amps').innerText = i2.toFixed(2) + ' A';
         document.getElementById('r2-power').innerText = (p2 / 1000).toFixed(2) + ' kW';
 
-        if (v > 0 && totalI > 0) {
-            const pf = Math.min(1.0, totalP / (v * totalI));
-            document.querySelector('.pf-value').innerText = pf.toFixed(2);
-            document.querySelector('.pf-gauge-fill').style.width = (pf * 100) + "%";
-        }
-
         updateCharts(p1, p2);
 
     } catch (error) {
-        console.error("Vercel Telemetry API unreachable:", error);
+        console.error("Telemetry fetch error:", error);
     }
-    
     updateConnectionStatus();
 }
 
-function updateConnectionStatus() {
-    const statusText = document.getElementById('main-conn-text');
-    const statusDot = document.getElementById('main-conn-dot');
-    const statusDiv = document.getElementById('main-conn-status');
-
-    if (Date.now() - lastValidDataTime > 15000) {
-        statusText.innerText = "ESP32 Offline";
-        statusDiv.style.color = "var(--red)";
-        statusDot.style.backgroundColor = "var(--red)";
-        statusDot.style.boxShadow = "0 0 8px var(--red)";
-    } else {
-        statusText.innerText = "ESP32 Online";
-        statusDiv.style.color = "var(--green)";
-        statusDot.style.backgroundColor = "var(--green)";
-        statusDot.style.boxShadow = "0 0 8px var(--green)";
-    }
-}
-
 // ==========================================
-// 7. THE POST API (SEND RELAY COMMANDS)
+// 7. THE POST API (RELAY CONTROL)
 // ==========================================
 async function sendRpcCommand(loadNumber) {
     let newState;
@@ -220,45 +223,54 @@ async function sendRpcCommand(loadNumber) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ loadNumber, state: newState })
         });
-
-        if (!res.ok) throw new Error("API Rejected Command");
-
+        if (!res.ok) throw new Error("RPC Command Failed");
     } catch (error) {
-        console.error("Relay Command failed:", error);
-        alert("⚠️ Network error. Could not reach Vercel.");
-        // Revert UI if it failed
+        console.error("Relay Command error:", error);
         if (loadNumber === 1) { load1State = !newState; syncButtonUI(1, load1State); } 
         else { load2State = !newState; syncButtonUI(2, load2State); }
     }
 }
 
 // ==========================================
-// 8. HARDWARE SETTINGS ENGINE (ATTRIBUTES)
+// 8. BILLING & TOP UP LOGIC
 // ==========================================
+function processTopUp() {
+    const input = document.getElementById('topup-input');
+    const amount = parseFloat(input.value);
+    
+    if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
 
-// Pull the latest settings from the Cloud when the page loads
+    creditBalance += amount;
+    localStorage.setItem('nexaWebCredit', creditBalance.toFixed(6));
+    
+    const formatted = creditBalance.toFixed(2);
+    document.getElementById('overview-credit').innerText = formatted;
+    document.getElementById('billing-credit').innerText = formatted;
+    
+    input.value = "";
+    alert(`✅ Successfully added ${amount} EGP!`);
+}
+
+// ==========================================
+// 9. HARDWARE SETTINGS (ATTRIBUTES)
+// ==========================================
 async function fetchHardwareSettings() {
     try {
         const response = await fetch('/api/attributes');
-        if (!response.ok) return; // Silent fail on initial load
-        
+        if (!response.ok) return;
         const data = await response.json();
         
-        // Update input boxes
         if (data.globalCurrentLimit !== undefined) document.getElementById('set-global-limit').value = data.globalCurrentLimit;
         if (data.isLoad1Essential !== undefined) document.getElementById('set-l1-essential').checked = data.isLoad1Essential;
         if (data.isLoad2Essential !== undefined) document.getElementById('set-l2-essential').checked = data.isLoad2Essential;
 
-        // Update the UI "Stars" next to the load names
-        document.getElementById('ui-ess-1').style.display = document.getElementById('set-l1-essential').checked ? 'inline' : 'none';
-        document.getElementById('ui-ess-2').style.display = document.getElementById('set-l2-essential').checked ? 'inline' : 'none';
-
+        document.getElementById('ui-ess-1').style.display = data.isLoad1Essential ? 'inline' : 'none';
+        document.getElementById('ui-ess-2').style.display = data.isLoad2Essential ? 'inline' : 'none';
     } catch (error) {
-        console.error("Failed to fetch settings from cloud", error);
+        console.error("Attribute fetch error:", error);
     }
 }
 
-// Push new settings to the Cloud & ESP32 Flash Memory
 async function saveHardwareSettings() {
     const limit = parseFloat(document.getElementById('set-global-limit').value);
     const ess1 = document.getElementById('set-l1-essential').checked;
@@ -268,82 +280,45 @@ async function saveHardwareSettings() {
         const res = await fetch('/api/attributes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                globalCurrentLimit: limit,
-                isLoad1Essential: ess1,
-                isLoad2Essential: ess2
-            })
+            body: JSON.stringify({ globalCurrentLimit: limit, isLoad1Essential: ess1, isLoad2Essential: ess2 })
         });
-
-        if (!res.ok) throw new Error("Sync Failed");
-
-        alert("✅ Hardware Settings successfully synced to ESP32 Flash Memory!");
-        
-        // Instantly update the UI stars
+        if (!res.ok) throw new Error("Attribute Sync Failed");
+        alert("✅ Hardware Settings synced to ESP32 Flash!");
         document.getElementById('ui-ess-1').style.display = ess1 ? 'inline' : 'none';
         document.getElementById('ui-ess-2').style.display = ess2 ? 'inline' : 'none';
-
     } catch (error) {
-        console.error("Failed to sync settings:", error);
-        alert("⚠️ Network error. Could not sync to the panel.");
+        alert("⚠️ Network error. Could not sync settings.");
     }
 }
 
 // ==========================================
-// 9. ECONOMIC SMART GRID ENGINE
+// 10. SYSTEM UTILS & BOOTSTRAP
 // ==========================================
-const UTILITY_CONFIG = { peakStartHour: 18.0, peakEndHour: 22.0 };
-let isSmartModeEnabled = false;
+function updateConnectionStatus() {
+    const statusText = document.getElementById('main-conn-text');
+    const statusDot = document.getElementById('main-conn-dot');
+    const statusDiv = document.getElementById('main-conn-status');
 
-function saveEconomicSettings() {
-    isSmartModeEnabled = document.getElementById('set-smart-mode').checked;
-    localStorage.setItem('nexaEconomic', isSmartModeEnabled);
-}
-
-function loadEconomicSettings() {
-    const saved = localStorage.getItem('nexaEconomic');
-    if (saved !== null) {
-        isSmartModeEnabled = (saved === 'true');
-        document.getElementById('set-smart-mode').checked = isSmartModeEnabled;
+    if (Date.now() - lastValidDataTime > 15000) {
+        statusText.innerText = "ESP32 Offline";
+        statusDiv.style.color = "var(--red)";
+        statusDot.style.backgroundColor = "var(--red)";
+    } else {
+        statusText.innerText = "ESP32 Online";
+        statusDiv.style.color = "var(--green)";
+        statusDot.style.backgroundColor = "var(--green)";
     }
 }
 
-function checkSmartGrid() {
-    if (!isSmartModeEnabled) return;
-
-    const now = new Date();
-    const currentTime = now.getHours() + (now.getMinutes() / 60);
-    const isPeak = (currentTime >= UTILITY_CONFIG.peakStartHour && currentTime < UTILITY_CONFIG.peakEndHour);
-
-    if (isPeak) {
-        // Read the essential status directly from the checkboxes
-        const l1Essential = document.getElementById('set-l1-essential').checked;
-        const l2Essential = document.getElementById('set-l2-essential').checked;
-
-        if (!l1Essential && load1State === true) {
-            console.log("ECONOMIC SHIFT: Turning OFF Load 1 during Peak Hours.");
-            sendRpcCommand(1); 
-        }
-        if (!l2Essential && load2State === true) {
-            console.log("ECONOMIC SHIFT: Turning OFF Load 2 during Peak Hours.");
-            sendRpcCommand(2); 
-        }
-    }
+function updateFooter() { 
+    document.getElementById('footer-time').innerText = new Date().toLocaleString(); 
 }
-
-// ==========================================
-// 10. DASHBOARD BOOTSTRAP 
-// ==========================================
-function updateFooter() { document.getElementById('footer-time').innerText = new Date().toLocaleString(); }
 
 function startDashboard() {
     initCharts();
     fetchRealData();
     fetchHardwareSettings(); 
-    loadEconomicSettings();
     updateFooter();
-    
     setInterval(fetchRealData, 5000); 
-    setInterval(checkSmartGrid, 30000); // Check economic shift every 30 seconds
     setInterval(updateFooter, 60000);
 }

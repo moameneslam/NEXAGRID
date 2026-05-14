@@ -31,6 +31,7 @@
             <nav>
                 <button class="tab-btn active" onclick="switchTab('tab-overview')">Overview</button>
                 <button class="tab-btn" onclick="switchTab('tab-loads')">Loads</button>
+                <button class="tab-btn" onclick="switchTab('tab-billing')">Billing</button>
                 <button class="tab-btn" onclick="switchTab('tab-analytics')">Analytics</button>
                 <button class="tab-btn" onclick="switchTab('tab-settings')">Settings</button>
             </nav>
@@ -43,20 +44,70 @@
 
     <div id="tab-overview" class="tab-content active">
         <div class="summary-grid">
-            <div class="card"><div class="accent-bar" style="background-color: var(--teal);"></div><div class="metric-label">Total Power</div><div class="metric-value-container"><div class="metric-value" id="totalPower">0.00</div><div class="metric-unit">kW</div></div></div>
-            <div class="card"><div class="accent-bar" style="background-color: var(--green);"></div><div class="metric-label">Voltage</div><div class="metric-value-container"><div class="metric-value" id="voltage_full">0.0</div><div class="metric-unit">V</div></div></div>
-            <div class="card"><div class="accent-bar" style="background-color: var(--orange);"></div><div class="metric-label">Total Cost</div><div class="metric-value-container"><div class="metric-value" id="totalCost">0.00</div><div class="metric-unit">EGP</div></div></div>
-            <div class="card"><div class="accent-bar" style="background-color: var(--gold);"></div><div class="metric-label">Energy Today</div><div class="metric-value-container"><div class="metric-value" id="energyToday">0.00</div><div class="metric-unit">kWh</div></div></div>
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--teal);"></div>
+                <div class="metric-label">Total Power</div>
+                <div class="metric-value-container">
+                    <div class="metric-value" id="totalPower">0.00</div>
+                    <div class="metric-unit">kW</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--green);"></div>
+                <div class="metric-label">Credit Balance</div>
+                <div class="metric-value-container">
+                    <div class="metric-value" id="overview-credit" style="color: var(--green);">0.00</div>
+                    <div class="metric-unit">EGP</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--orange);"></div>
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value-container">
+                    <div class="metric-value" id="totalCost">0.00</div>
+                    <div class="metric-unit">EGP</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--gold);"></div>
+                <div class="metric-label">Energy Today</div>
+                <div class="metric-value-container">
+                    <div class="metric-value" id="energyToday">0.0000</div>
+                    <div class="metric-unit">kWh</div>
+                </div>
+            </div>
         </div>
+
         <div class="main-container">
-            <div class="card"><h3>Live Power Draw</h3><div class="graph-container"><canvas id="liveChart"></canvas></div></div>
+            <div class="card">
+                <h3>Live Power Draw</h3>
+                <div class="graph-container">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
             <div class="sidebar">
-                <div class="card"><div class="metric-label">Overall Power Factor</div><div class="pf-value">0.00</div><div class="pf-status" id="pf-status">Calculating...</div><div class="pf-gauge"><div class="pf-gauge-fill" style="width: 0%;"></div></div></div>
-                <div class="card"><div class="metric-label">Load Breakdown</div><div class="load-table">
-                    <div class="load-row"><span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span><span id="load1-split">0.00 kW</span></div>
-                    <div class="load-row"><span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span><span id="load2-split">0.00 kW</span></div>
-                    <div class="load-row"><span>Total</span><span style="color: var(--teal);" id="load-total-split">0.00 kW</span></div>
-                </div></div>
+                <div class="card">
+                    <div class="metric-label">System Voltage</div>
+                    <div class="metric-value" style="font-size: 2.5em;" id="voltage_full">0.0</div>
+                    <div class="sub-text">Volts AC (RMS)</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Load Breakdown</div>
+                    <div class="load-table">
+                        <div class="load-row">
+                            <span><div class="load-indicator" style="background-color: var(--teal);"></div>Load 1</span>
+                            <span id="load1-split">0.00 kW</span>
+                        </div>
+                        <div class="load-row">
+                            <span><div class="load-indicator" style="background-color: var(--gold);"></div>Load 2</span>
+                            <span id="load2-split">0.00 kW</span>
+                        </div>
+                        <div class="load-row">
+                            <span>Total</span>
+                            <span style="color: var(--teal);" id="load-total-split">0.00 kW</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -97,72 +148,71 @@
         </div>
     </div>
 
+    <div id="tab-billing" class="tab-content">
+        <div class="loads-grid">
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--green);"></div>
+                <h2>Account Balance</h2>
+                <div class="metric-value-container" style="margin-top: 20px;">
+                    <div class="metric-value" id="billing-credit" style="color: var(--green);">0.00</div>
+                    <div class="metric-unit">EGP</div>
+                </div>
+                <div class="sub-text" style="margin-top: 10px;">Prepaid energy credit. System will initiate auto-cutoff at 0.00 EGP.</div>
+            </div>
+
+            <div class="card">
+                <div class="accent-bar" style="background-color: var(--teal);"></div>
+                <h2>Refill Credit</h2>
+                <div class="settings-group" style="margin-top: 20px;">
+                    <label>Amount to Add (EGP)</label>
+                    <input type="number" id="topup-input" class="settings-input" placeholder="e.g. 50">
+                    <button class="login-btn" onclick="processTopUp()">Confirm Top Up</button>
+                </div>
+                <div class="sub-text" style="margin-top: 10px;">Transactions are processed instantly.</div>
+            </div>
+        </div>
+    </div>
+
     <div id="tab-analytics" class="tab-content">
         <div class="card" style="height: 500px;">
             <h2>Historical Power Analytics</h2>
-            <div class="sub-text" style="margin-bottom: 20px;">Tracking Load 1 and Load 2 active power consumption over time.</div>
+            <div class="sub-text" style="margin-bottom: 20px;">Tracking Load 1 and Load 2 consumption over time.</div>
             <div class="graph-container" style="height: 400px;"><canvas id="analyticsChart"></canvas></div>
         </div>
     </div>
 
     <div id="tab-settings" class="tab-content">
         <div class="loads-grid">
-            
-            <div class="card" style="grid-column: 1 / -1;">
-                <div class="accent-bar" style="background-color: var(--gold);"></div>
-                <h2>Economic Auto-Shift</h2>
-                <div class="sub-text" style="margin-bottom: 20px;">Automatically turn off non-essential loads during expensive Peak Hours to save money.</div>
-                
-                <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div>
-                        <div style="font-weight: 600; font-size: 1.1em;">Enable Peak Shifting</div>
-                        <div class="sub-text" style="margin-top: 5px;">Forces non-essential loads OFF from 18:00 to 22:00 daily.</div>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="set-smart-mode" onchange="saveEconomicSettings()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
             <div class="card" style="grid-column: 1 / -1;">
                 <div class="accent-bar" style="background-color: var(--orange);"></div>
-                <h2>Hardware Load Shedding (Safety)</h2>
-                <div class="sub-text" style="margin-bottom: 20px;">These limits sync directly to the ESP32. The panel will instantly trip non-essential loads if this physical Amp limit is exceeded.</div>
+                <h2>Hardware Protection Settings</h2>
+                <div class="sub-text" style="margin-bottom: 20px;">Safety limits are stored directly in the ESP32 Flash memory.</div>
 
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
                     <div class="settings-group">
                         <label>Global Current Limit (Amps)</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="number" id="set-global-limit" class="settings-input" style="width: 150px;" value="20.0" step="0.5">
-                            <button class="login-btn" style="margin-top: 0; width: 120px; padding: 10px;" onclick="saveHardwareSettings()">Sync to Panel</button>
+                            <button class="login-btn" style="margin-top: 0; width: 120px; padding: 10px;" onclick="saveHardwareSettings()">Sync to ESP</button>
                         </div>
-                        <div class="sub-text" style="margin-top: 5px;">Maximum total Amps allowed before the ESP32 initiates load shedding.</div>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="color: var(--teal); margin-bottom: 15px;">Load 1</h3>
+                        <h3 style="color: var(--teal); margin-bottom: 15px;">Load 1 Priority</h3>
                         <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600;">Essential Status</div>
-                                <div class="sub-text">Protect load from auto-tripping.</div>
-                            </div>
+                            <div><div style="font-weight: 600;">Essential Status</div></div>
                             <label class="switch">
                                 <input type="checkbox" id="set-l1-essential" onchange="saveHardwareSettings()">
                                 <span class="slider"></span>
                             </label>
                         </div>
                     </div>
-
                     <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h3 style="color: var(--gold); margin-bottom: 15px;">Load 2</h3>
+                        <h3 style="color: var(--gold); margin-bottom: 15px;">Load 2 Priority</h3>
                         <div class="settings-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600;">Essential Status</div>
-                                <div class="sub-text">Protect load from auto-tripping.</div>
-                            </div>
+                            <div><div style="font-weight: 600;">Essential Status</div></div>
                             <label class="switch">
                                 <input type="checkbox" id="set-l2-essential" onchange="saveHardwareSettings()">
                                 <span class="slider"></span>
@@ -171,35 +221,12 @@
                     </div>
                 </div>
             </div>
-
-            <div class="card" style="grid-column: 1 / -1;">
-                <div class="accent-bar" style="background-color: var(--teal);"></div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <h2>Utility Provider Tariffs</h2>
-                    <span class="relay-status offline" style="background: rgba(139, 148, 158, 0.1); color: var(--text-sub); border: 1px solid var(--border-color);">🔒 SYNCED</span>
-                </div>
-                <div class="sub-text" style="margin-bottom: 20px;">Rates and schedules are strictly locked by your energy provider.</div>
-
-                <div style="display: flex; gap: 15px;">
-                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
-                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Peak Rate</label>
-                        <div style="font-size: 2em; font-weight: bold; color: var(--red); margin: 5px 0;">3.0 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
-                        <div class="sub-text">18:00 - 22:00</div>
-                    </div>
-                    <div style="flex: 1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center;">
-                        <label style="font-size: 0.85em; color: var(--text-sub); font-weight: 600; text-transform: uppercase;">Off-Peak Rate</label>
-                        <div style="font-size: 2em; font-weight: bold; color: var(--green); margin: 5px 0;">0.5 <span style="font-size: 0.4em; color: var(--text-sub);">EGP/kWh</span></div>
-                        <div class="sub-text">All other times</div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
     <footer>
         <div id="footer-time"></div>
-        <div>Nexa Grid • Edge Load Shedding Engine</div>
+        <div>Nexa Grid • Smart Grid Project</div>
     </footer>
 
 </body>

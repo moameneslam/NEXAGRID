@@ -1,4 +1,4 @@
-/* --- Global Theme --- */
+/* --- Global Theme & Colors --- */
 :root {
     --bg-color: #0d1117; 
     --card-bg: #161b22; 
@@ -27,7 +27,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .sub-text { color: var(--text-sub); font-size: 0.85em; }
 .accent-bar { height: 4px; border-radius: 4px 4px 0 0; position: absolute; top: 0; left: 0; right: 0; }
 
-/* --- LOGIN OVERLAY STYLES --- */
+/* --- Login Security Overlay --- */
 #login-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: var(--bg-color); z-index: 9999;
@@ -76,10 +76,10 @@ nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); mar
 .tab-content.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Shared Card Styles --- */
+/* --- Card Styles --- */
 .card { background-color: var(--card-bg); border-radius: 8px; padding: 20px; border: 1px solid var(--border-color); position: relative; }
 
-/* --- TAB 1: OVERVIEW STYLES --- */
+/* --- Overview Widgets --- */
 .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
 .metric-label { font-size: 0.9em; color: var(--text-sub); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;}
 .metric-value-container { display: flex; align-items: baseline; margin-bottom: 5px; }
@@ -89,24 +89,20 @@ nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); mar
 .main-container { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
 .graph-container { height: 350px; width: 100%; margin-top: 20px; position: relative;}
 
-/* Sidebar Elements */
+/* Sidebar elements */
 .sidebar { display: flex; flex-direction: column; gap: 20px; }
-.pf-value { font-size: 2.5em; font-weight: 700; color: var(--green); margin-bottom: 5px; }
-.pf-status { font-weight: 600; color: var(--green); font-size: 0.9em; }
-.pf-gauge { height: 6px; width: 100%; background-color: var(--bg-color); border-radius: 3px; overflow: hidden; margin-top: 15px; }
-.pf-gauge-fill { height: 100%; width: 97%; background-color: var(--green); transition: width 0.5s ease; }
-
 .load-table { width: 100%; font-size: 0.95em; border-collapse: collapse; margin-top: 10px; }
 .load-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
 .load-row:last-child { border-bottom: none; font-weight: 600; margin-top: 5px; }
 .load-indicator { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 10px; }
 
-/* --- TAB 2: LOADS STYLES --- */
+/* --- Load Control & Relay Status --- */
 .loads-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .relay-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;}
 .relay-status { padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; background: rgba(46, 204, 113, 0.2); color: var(--green); border: 1px solid var(--green); }
 .relay-status.offline { background: rgba(231, 76, 60, 0.2); color: var(--red); border: 1px solid var(--red); }
 .relay-status.warning { background: rgba(230, 126, 34, 0.2); color: var(--orange); border: 1px solid var(--orange); }
+
 .relay-data { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
 .r-data-box p { margin: 0; color: var(--text-sub); font-size: 0.85em; }
 .r-data-box h4 { margin: 5px 0 0; font-size: 1.2em; }
@@ -118,13 +114,17 @@ nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); mar
 .btn-indicator { height: 10px; width: 10px; border-radius: 50%; background-color: var(--green); }
 .toggle-btn.off .btn-indicator { background-color: var(--text-sub); }
 
-/* --- TAB 4: SETTINGS STYLES --- */
+/* --- Billing Specific Refinements --- */
+#billing-credit { transition: color 0.5s ease; }
+.topup-card { display: flex; flex-direction: column; gap: 15px; }
+
+/* --- Settings & Inputs --- */
 .settings-group { display: flex; flex-direction: column; margin-bottom: 15px; }
 .settings-group label { font-size: 0.9em; color: var(--text-sub); margin-bottom: 5px; font-weight: 600; }
 .settings-input { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 6px; font-size: 1em; }
 .settings-input:focus { outline: none; border-color: var(--teal); }
 
-/* Toggle Switch */
+/* Custom Switch for Settings */
 .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 26px; }
@@ -132,4 +132,5 @@ nav { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); mar
 input:checked + .slider { background-color: var(--teal); }
 input:checked + .slider:before { transform: translateX(24px); }
 
+/* Footer */
 footer { margin-top: auto; display: flex; justify-content: space-between; padding: 20px 0 10px; border-top: 1px solid var(--border-color); color: var(--text-sub); font-size: 0.8em; }
